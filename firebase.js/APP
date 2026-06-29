@@ -1,0 +1,17 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-analytics.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBp2my6zIwoEDGB8FcC-m-bmd0y8ub_dX0",
+  authDomain: "business-moh-52a72.firebaseapp.com",
+  projectId: "business-moh-52a72",
+  storageBucket: "business-moh-52a72.firebasestorage.app",
+  messagingSenderId: "968092977035",
+  appId: "1:968092977035:web:83132bb50c43f64e23518e",
+  measurementId: "G-NGW6WZ3NZK"
+};
+
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+export { app, analytics };

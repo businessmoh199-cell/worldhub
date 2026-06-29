@@ -1,0 +1,2049 @@
+<!DOCTYPE html>
+<!-- saved from url=(0012)about:srcdoc -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js" integrity="sha512-iZ2ORl595Wx6miw+GuadDet4WQbdSWS3JLMoNfY8cRGoEFy6oT3G9IbcrBeL6AfkgpA51ETt/faX6yLV+/gFJg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+      (function() {
+        // Capture host references before any artifact code runs: Window.parent
+        // is [Replaceable] (a top-level `var parent` in artifact code would
+        // replace the accessor with a data property), and a top-level
+        // `const crypto` would shadow the global — either would otherwise
+        // silently break the bridge for artifacts that worked before.
+        const realParent = window.parent;
+        const cryptoObj = window.crypto;
+        // crypto.randomUUID exists only in Secure Contexts; fall back to a
+        // unique non-crypto id elsewhere (http://LAN-IP dev flows) —
+        // uniqueness is what the bridge needs, unpredictability is
+        // defense-in-depth on top of the source guards.
+        const newRequestId =
+          cryptoObj && typeof cryptoObj.randomUUID === "function"
+            ? function () { return cryptoObj.randomUUID(); }
+            : function () { return Date.now() + "-" + Math.random(); };
+        const originalConsole = window.console;
+        window.console = {
+          log: (...args) => {
+            originalConsole.log(...args);
+            realParent.postMessage({ type: 'console', message: args.join(' ') }, '*');
+          },
+          error: (...args) => {
+            originalConsole.error(...args);
+            realParent.postMessage({ type: 'console', message: 'Error: ' + args.join(' ') }, '*');
+          },
+          warn: (...args) => {
+            originalConsole.warn(...args);
+            realParent.postMessage({ type: 'console', message: 'Warning: ' + args.join(' ') }, '*');
+          }
+        };
+
+        // Bridge request ids are crypto-random (not sequential) so they
+        // cannot be predicted by other frames in the tab.
+        let callbacksMap = new Map();
+        let streamControllers = new Map();
+        
+        window.claude = {
+          complete: (prompt) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'claudeComplete', id, prompt }, '*');
+            });
+          }
+        };
+
+        window.storage = {
+          get: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageGet', id, key, shared }, '*');
+            });
+          },
+          set: (key, value, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageSet', id, key, value, shared }, '*');
+            });
+          },
+          delete: (key, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageDelete', id, key, shared }, '*');
+            });
+          },
+          list: (prefix, shared = false) => {
+            return new Promise((resolve, reject) => {
+              const id = newRequestId();
+              callbacksMap.set(id, { resolve, reject });
+              realParent.postMessage({ type: 'storageList', id, prefix, shared }, '*');
+            });
+          }
+        };
+
+        let pendingBlobs = new Map();
+        URL.createObjectURL = (blob) => {
+          // Store the blob and create an ID and URL for it
+          const blobId = `blob-${Date.now()}-${Math.random()}`;
+          pendingBlobs.set(blobId, blob);
+          return `blob-request://${blobId}`;
+        };
+
+        URL.revokeObjectURL = (url) => {
+          // Remove the blob from our store
+          const blobId = url.replace("blob-request://", "");
+          pendingBlobs.delete(blobId);
+        };
+
+        const getBlobFromURL = (url) => {
+          const blobId = url.replace("blob-request://", "");
+          return pendingBlobs.get(blobId);
+        };
+
+        // Override global fetch with streaming support
+        window.fetch = (url, init = {}) => {
+          return new Promise((resolve, reject) => {
+            const id = newRequestId();
+            const channelId = `fetch-${id}-${Date.now()}`;
+            
+            callbacksMap.set(id, { 
+              resolve: (response) => {
+                // Null-body statuses: Response(stream, {status: 204}) throws
+                // per the Fetch spec, which would escape this resolver and
+                // hang the artifact's await forever.
+                if (response.status === 204 || response.status === 205 || response.status === 304) {
+                  try {
+                    resolve(new Response(null, {
+                      status: response.status,
+                      statusText: response.statusText,
+                      headers: response.headers
+                    }));
+                  } catch (err) {
+                    // Invalid statusText/header bytes can throw here too.
+                    reject(new TypeError(
+                      'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                    ));
+                  }
+                  return;
+                }
+                // Create a ReadableStream for the response body
+                const stream = new ReadableStream({
+                  start(controller) {
+                    streamControllers.set(channelId, controller);
+                  },
+                  cancel() {
+                    streamControllers.delete(channelId);
+                  }
+                });
+                
+                // Create and return the Response with the stream. Response()
+                // requires status in [200, 599]; an opaque/no-cors fetch
+                // forwards status 0, which would throw here and escape the
+                // resolver, hanging the artifact's await. Surface it as a
+                // network-error-shaped rejection instead.
+                try {
+                  resolve(new Response(stream, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    headers: response.headers
+                  }));
+                } catch (err) {
+                  streamControllers.delete(channelId);
+                  reject(new TypeError(
+                    'Bridge fetch: unconstructable response (status ' + response.status + ')'
+                  ));
+                }
+              },
+              reject,
+              channelId
+            });
+            
+            realParent.postMessage({
+              type: 'proxyFetch',
+              id,
+              url,
+              init,
+              channelId
+            }, '*');
+          });
+        };
+
+        window.addEventListener('message', async (event) => {
+          // Only the embedding parent may drive the bridge — sibling and
+          // nested frames can also postMessage into this window.
+          if (event.source !== realParent) return;
+          if (event.data.type === 'takeScreenshot') {
+            // Echo the request's nonce so the requester can correlate the
+            // reply to ITS request — a reply without the expected nonce
+            // (e.g. from a stale pre-remount artifact) is ignored upstream.
+            const screenshotNonce = event.data.nonce;
+            const rootElement = document.getElementById('artifacts-component-root-html');
+            if (!rootElement) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: new Error('Root element not found'),
+              }, '*');
+              return;
+            }
+            // Catch CDN load failures (htmlToImage undefined) and toPng errors
+            // so the parent always gets a response instead of hanging forever.
+            try {
+              const screenshot = await htmlToImage.toPng(rootElement, {
+                imagePlaceholder:
+                  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAAXNSR0IArs4c6QAAAA1JREFUGFdjePDgwX8ACOQDoNsk0PMAAAAASUVORK5CYII=",
+              });
+              realParent.postMessage({
+                type: 'screenshotData',
+                nonce: screenshotNonce,
+                data: screenshot,
+              }, '*');
+            } catch (err) {
+              realParent.postMessage({
+                type: 'screenshotError',
+                nonce: screenshotNonce,
+                error: err instanceof Error ? err : new Error(String(err)),
+              }, '*');
+            }
+          } else if (event.data.type === 'claudeComplete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.completion);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'proxyFetchResponse') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+              callbacksMap.delete(event.data.id);
+            } else {
+              // Initial response with headers, status, etc.
+              callback.resolve({
+                status: event.data.status,
+                statusText: event.data.statusText,
+                headers: event.data.headers
+              });
+              // Don't delete the callback yet if streaming
+              if (!event.data.body) {
+                callbacksMap.delete(event.data.id);
+              }
+            }
+          } else if (event.data.type === 'proxyFetchStream') {
+            // Handle streaming data chunks
+            const controller = streamControllers.get(event.data.channelId);
+            if (controller) {
+              if (event.data.error) {
+                controller.error(new Error(event.data.error));
+                streamControllers.delete(event.data.channelId);
+              } else if (event.data.done) {
+                controller.close();
+                streamControllers.delete(event.data.channelId);
+                // Clean up the callback
+                const callback = Array.from(callbacksMap.entries()).find(
+                  ([_, value]) => value.channelId === event.data.channelId
+                );
+                if (callback) {
+                  callbacksMap.delete(callback[0]);
+                }
+              } else if (event.data.chunk) {
+                controller.enqueue(new Uint8Array(event.data.chunk));
+              }
+            }
+          } else if (event.data.type === 'storageGet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageSet') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageDelete') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          } else if (event.data.type === 'storageList') {
+            const callback = callbacksMap.get(event.data.id);
+            if (!callback) return;
+            if (event.data.error) {
+              callback.reject(new Error(event.data.error));
+            } else {
+              callback.resolve(event.data.result);
+            }
+            callbacksMap.delete(event.data.id);
+          }
+        });
+
+        window.addEventListener('click', (event) => {
+          const isEl = event.target instanceof HTMLElement;
+          if (!isEl) return;
+    
+          // find ancestor links
+          const linkEl = event.target.closest("a");
+          if (!linkEl || !linkEl.href) return;
+    
+          event.preventDefault();
+          event.stopImmediatePropagation();
+    
+          if (linkEl.href.startsWith("blob-request:")) {
+            const blob = getBlobFromURL(linkEl.href);
+            if (!blob) return;
+            void blob.arrayBuffer().then((data) => {
+              realParent.postMessage({
+                type: "downloadFile",
+                filename: linkEl.download,
+                data,
+                mimeType: blob.type || "application/octet-stream",
+              });
+            });
+          } else if (linkEl.href.startsWith("data:")) {
+            const [header, base64Data] = linkEl.href.split(",");
+            const mimeMatch = header.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : "application/octet-stream";
+            const binaryString = atob(base64Data);
+            const data = Uint8Array.from(binaryString, (c) =>
+              c.charCodeAt(0),
+            ).buffer;
+            realParent.postMessage({
+              type: "downloadFile",
+              filename: linkEl.download,
+              data,
+              mimeType,
+            });
+          } else {
+            let linkUrl;
+            try {
+              linkUrl = new URL(linkEl.href);
+            } catch (error) {
+              return;
+            }
+    
+            if (linkUrl.hostname === window.location.hostname) return;
+      
+            realParent.postMessage({
+              type: 'openExternal',
+              href: linkEl.href,
+            }, '*');
+          }
+      });
+
+        const originalOpen = window.open;
+        window.open = function (url) {
+          realParent.postMessage({
+            type: "openExternal",
+            href: url,
+          }, "*");
+        };
+
+        window.addEventListener('error', (event) => {
+          realParent.postMessage({ type: 'console', message: 'Uncaught Error: ' + event.message }, '*');
+        });
+      })();
+    </script>
+  
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldHub — Phase 2</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com/">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0a0f;--bg2:#111118;--bg3:#16161f;--bg4:#1c1c28;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#f0f0f5;--text2:#9090a8;--text3:#5a5a70;
+  --accent:#6c63ff;--accent2:#8b83ff;--accentBg:rgba(108,99,255,0.12);--accentBorder:rgba(108,99,255,0.3);
+  --green:#22c55e;--greenBg:rgba(34,197,94,0.1);
+  --amber:#f59e0b;--amberBg:rgba(245,158,11,0.1);
+  --red:#ef4444;
+  --radius:12px;--radius-sm:8px;--radius-lg:16px;
+  --shadow:0 4px 24px rgba(0,0,0,0.4);
+  --font:'Inter',sans-serif;--fontDisplay:'Space Grotesk',sans-serif;
+  --sidebar-w:280px;--topbar-h:64px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{height:var(--topbar-h);background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:100;}
+.logo{font-family:var(--fontDisplay);font-size:22px;font-weight:700;color:var(--accent2);letter-spacing:-0.5px;white-space:nowrap;cursor:pointer;}
+.logo span{color:var(--text3);font-weight:400;font-size:14px;margin-left:6px;}
+.topbar-search{flex:1;max-width:480px;margin:0 auto;position:relative;}
+.topbar-search input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:9px 16px 9px 40px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color 0.2s;}
+.topbar-search input:focus{border-color:var(--accentBorder);}
+.topbar-search input::placeholder{color:var(--text3);}
+.topbar-search .si{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:17px;pointer-events:none;}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.notif-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:18px;transition:all 0.2s;}
+.notif-btn:hover{border-color:var(--accentBorder);color:var(--accent2);}
+.avatar-btn{width:36px;height:36px;border-radius:50%;border:1px solid transparent;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;font-size:13px;font-weight:600;transition:all 0.2s;}
+.login-btn{background:var(--accent);border:none;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font);transition:background 0.15s;}
+.login-btn:hover{background:var(--accent2);}
+
+/* LAYOUT */
+.main-layout{display:flex;flex:1;overflow:hidden;}
+.sidebar{width:var(--sidebar-w);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sidebar::-webkit-scrollbar{width:4px;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.content-area{flex:1;overflow-y:auto;background:var(--bg);}
+.content-area::-webkit-scrollbar{width:6px;}
+.content-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+/* SIDEBAR */
+.sidebar-section{padding:12px 12px 4px;}
+.sidebar-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);padding:0 8px;margin-bottom:6px;}
+.world-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;color:var(--text2);font-size:14px;border:1px solid transparent;position:relative;}
+.world-item:hover{background:var(--bg3);color:var(--text);}
+.world-item.active{background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder);}
+.world-emoji{font-size:18px;width:28px;text-align:center;}
+.world-name{flex:1;font-weight:500;}
+.world-badge{font-size:10px;font-weight:600;background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center;}
+.sidebar-divider{height:1px;background:var(--border);margin:8px 12px;}
+
+/* BUTTONS */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;font-family:var(--font);display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{border-color:var(--border2);background:var(--bg4);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+.btn-danger{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
+.btn-danger:hover{background:rgba(239,68,68,0.25);}
+
+/* TABS */
+.world-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:24px 28px 0;position:sticky;top:0;z-index:50;}
+.world-hero{display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.world-icon-big{width:56px;height:56px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:28px;background:var(--accentBg);border:1px solid var(--accentBorder);}
+.world-info h1{font-family:var(--fontDisplay);font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.3px;}
+.world-meta{display:flex;align-items:center;gap:12px;margin-top:4px;}
+.world-meta-item{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:4px;}
+.world-actions{display:flex;gap:8px;margin-left:auto;}
+.world-tabs{display:flex;gap:2px;overflow-x:auto;}
+.world-tabs::-webkit-scrollbar{display:none;}
+.tab-btn{padding:10px 16px;font-size:13px;font-weight:500;color:var(--text3);border:none;background:transparent;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.15s;font-family:var(--font);display:flex;align-items:center;gap:6px;}
+.tab-btn:hover{color:var(--text2);}
+.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.tab-panel{display:none;padding:24px 28px;}
+.tab-panel.active{display:block;}
+
+/* CARDS */
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.stat-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);}
+.stat-sub{font-size:12px;color:var(--green);margin-top:2px;}
+
+.post-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;transition:border-color 0.2s;cursor:pointer;}
+.post-card:hover{border-color:var(--border2);}
+.post-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.post-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;cursor:pointer;}
+.post-meta{flex:1;}
+.post-author{font-size:14px;font-weight:600;color:var(--text);}
+.post-time{font-size:12px;color:var(--text3);}
+.post-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;border:1px solid;}
+.post-body{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:14px;}
+.post-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.post-footer{display:flex;align-items:center;gap:16px;}
+.post-action{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text3);cursor:pointer;transition:color 0.15s;}
+.post-action:hover{color:var(--accent2);}
+.post-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.tag{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
+
+.job-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;transition:border-color 0.2s;cursor:pointer;}
+.job-card:hover{border-color:var(--accentBorder);}
+.job-header{display:flex;align-items:start;gap:14px;}
+.company-logo{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg3);border:1px solid var(--border);flex-shrink:0;}
+.job-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.job-company{font-size:13px;color:var(--text2);}
+.job-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.job-tag{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--border);color:var(--text2);background:var(--bg3);}
+.job-tag.remote{color:var(--green);border-color:rgba(34,197,94,0.3);background:var(--greenBg);}
+.job-salary{font-size:14px;font-weight:600;color:var(--accent2);margin-left:auto;white-space:nowrap;}
+
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}
+.market-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all 0.2s;cursor:pointer;}
+.market-card:hover{border-color:var(--accentBorder);transform:translateY(-2px);}
+.market-thumb{height:130px;display:flex;align-items:center;justify-content:center;font-size:48px;background:var(--bg3);}
+.market-info{padding:14px;}
+.market-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.market-seller{font-size:12px;color:var(--text3);margin-bottom:10px;}
+.market-footer{display:flex;align-items:center;justify-content:space-between;}
+.market-price{font-size:16px;font-weight:700;color:var(--accent2);font-family:var(--fontDisplay);}
+.market-rating{font-size:12px;color:var(--amber);display:flex;align-items:center;gap:3px;}
+.price-free{color:var(--green);}
+
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;z-index:1000;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:28px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;position:relative;}
+.modal-wide{max-width:680px;}
+.modal h2{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;font-family:var(--fontDisplay);}
+.modal p{font-size:14px;color:var(--text2);margin-bottom:18px;}
+.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;margin-bottom:12px;transition:border-color 0.2s;}
+.modal-input:focus{border-color:var(--accentBorder);}
+.modal-input::placeholder{color:var(--text3);}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:all 0.15s;}
+.modal-close:hover{background:var(--bg3);color:var(--text);}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;display:block;}
+.form-group{margin-bottom:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+
+/* AUTH SCREENS */
+.auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;min-height:100%;}
+.auth-card{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:36px;width:100%;max-width:440px;}
+.auth-logo{font-family:var(--fontDisplay);font-size:28px;font-weight:700;color:var(--accent2);text-align:center;margin-bottom:8px;}
+.auth-tagline{font-size:14px;color:var(--text3);text-align:center;margin-bottom:32px;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
+.auth-divider span{font-size:12px;color:var(--text3);white-space:nowrap;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.social-btn{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:11px 16px;color:var(--text);font-size:14px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s;margin-bottom:10px;font-weight:500;}
+.social-btn:hover{border-color:var(--accentBorder);background:var(--accentBg);}
+.social-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.auth-switch{text-align:center;font-size:13px;color:var(--text3);margin-top:20px;}
+.auth-switch a{color:var(--accent2);cursor:pointer;text-decoration:none;}
+.auth-switch a:hover{text-decoration:underline;}
+.input-group{position:relative;}
+.input-group .modal-input{padding-left:40px;}
+.input-group .input-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text3);cursor:pointer;font-size:16px;}
+
+/* PROFILE */
+.profile-page{max-width:860px;margin:0 auto;padding:28px;}
+.profile-cover{height:160px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;background:linear-gradient(135deg,#1a1030,#0d1f3c,#0a1628);border:1px solid var(--border);position:relative;overflow:hidden;}
+.profile-cover-pattern{position:absolute;inset:0;opacity:0.3;background-image:radial-gradient(circle at 20% 50%,rgba(108,99,255,0.4) 0,transparent 50%),radial-gradient(circle at 80% 50%,rgba(168,85,247,0.3) 0,transparent 50%);}
+.profile-avatar-wrap{position:absolute;bottom:-32px;left:28px;}
+.profile-avatar-lg{width:80px;height:80px;border-radius:50%;border:3px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--accent),#a855f7);}
+.profile-body{background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:48px 28px 28px;}
+.profile-name{font-family:var(--fontDisplay);font-size:24px;font-weight:700;color:var(--text);}
+.profile-headline{font-size:15px;color:var(--text2);margin:4px 0 12px;}
+.profile-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.profile-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:500;}
+.badge-expert{background:var(--accentBg);color:var(--accent2);border:1px solid var(--accentBorder);}
+.badge-verified{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.badge-company{background:var(--amberBg);color:var(--amber);border:1px solid rgba(245,158,11,0.3);}
+.profile-stats{display:flex;gap:24px;margin-bottom:20px;}
+.profile-stat{text-align:center;}
+.profile-stat-val{font-size:20px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);}
+.profile-stat-label{font-size:12px;color:var(--text3);}
+.profile-bio{font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:20px;}
+.profile-meta-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+.profile-meta-item{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);}
+.skills-wrap{display:flex;flex-wrap:wrap;gap:8px;}
+.skill-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text2);}
+
+/* EXPERT PROFILES */
+.experts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.expert-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center;transition:border-color 0.2s;cursor:pointer;}
+.expert-card:hover{border-color:var(--accentBorder);}
+.expert-avatar{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;margin:0 auto 12px;}
+.expert-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.expert-role{font-size:12px;color:var(--accent2);margin-bottom:8px;}
+.expert-country{font-size:12px;color:var(--text3);margin-bottom:12px;}
+.expert-skills{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:12px;}
+.expert-skill{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text3);}
+.expert-stats{display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--text3);}
+
+/* COMPANIES */
+.company-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px;transition:border-color 0.2s;cursor:pointer;}
+.company-card:hover{border-color:var(--accentBorder);}
+.company-header{display:flex;align-items:center;gap:14px;margin-bottom:12px;}
+.company-logo-lg{width:52px;height:52px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.company-name{font-size:16px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.company-industry{font-size:13px;color:var(--text2);}
+.company-stats{display:flex;gap:16px;font-size:12px;color:var(--text3);}
+.company-stat{display:flex;align-items:center;gap:4px;}
+
+/* CHAT */
+.chat-layout{display:flex;height:calc(100vh - var(--topbar-h) - 120px);gap:0;}
+.chat-sidebar{width:220px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:8px;}
+.chat-channel{padding:7px 10px;border-radius:8px;cursor:pointer;transition:all 0.15s;font-size:14px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.chat-channel:hover{background:var(--bg3);color:var(--text);}
+.chat-channel.active{background:var(--accentBg);color:var(--accent2);}
+.chat-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.chat-messages{flex:1;overflow-y:auto;padding:16px;}
+.chat-messages::-webkit-scrollbar{width:4px;}
+.chat-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.chat-msg{display:flex;gap:10px;margin-bottom:16px;}
+.chat-msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;margin-top:2px;}
+.chat-msg-bubble{flex:1;}
+.chat-msg-header{display:flex;align-items:baseline;gap:8px;margin-bottom:3px;}
+.chat-msg-name{font-size:13px;font-weight:600;color:var(--text);}
+.chat-msg-time{font-size:11px;color:var(--text3);}
+.chat-msg-text{font-size:14px;color:var(--text2);line-height:1.5;}
+.chat-input-bar{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;color:var(--text);font-size:14px;font-family:var(--font);outline:none;height:40px;transition:border-color 0.2s;}
+.chat-input:focus{border-color:var(--accentBorder);}
+.chat-input::placeholder{color:var(--text3);}
+.chat-send{width:36px;height:36px;border-radius:8px;background:var(--accent);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background 0.15s;}
+.chat-send:hover{background:var(--accent2);}
+
+/* AI PANEL */
+.ai-panel{width:320px;border-left:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;background:var(--bg2);}
+.ai-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.ai-orb{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;}
+.ai-title{font-size:14px;font-weight:600;color:var(--text);}
+.ai-subtitle{font-size:11px;color:var(--text3);}
+.ai-messages{flex:1;overflow-y:auto;padding:12px;}
+.ai-messages::-webkit-scrollbar{width:4px;}
+.ai-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+.ai-msg{margin-bottom:12px;}
+.ai-msg-user{text-align:right;}
+.ai-bubble{display:inline-block;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;max-width:85%;}
+.ai-bubble-user{background:var(--accent);color:#fff;border-radius:10px 10px 2px 10px;}
+.ai-bubble-bot{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:10px 10px 10px 2px;text-align:left;}
+.ai-suggestions{display:flex;flex-direction:column;gap:6px;padding:8px 12px;}
+.ai-suggest-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--text2);cursor:pointer;text-align:left;transition:all 0.15s;font-family:var(--font);display:flex;align-items:center;gap:6px;}
+.ai-suggest-btn:hover{border-color:var(--accentBorder);color:var(--accent2);background:var(--accentBg);}
+.ai-input-bar{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center;}
+.ai-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color 0.2s;}
+.ai-input:focus{border-color:var(--accentBorder);}
+.ai-input::placeholder{color:var(--text3);}
+.ai-send{width:30px;height:30px;border-radius:6px;background:var(--accent);border:none;color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.ai-send:hover{background:var(--accent2);}
+
+/* TYPING */
+.typing{display:flex;gap:4px;align-items:center;padding:4px 0;}
+.typing-dot{width:5px;height:5px;border-radius:50%;background:var(--accent2);animation:pulse 1s ease-in-out infinite;}
+.typing-dot:nth-child(2){animation-delay:0.2s;}
+.typing-dot:nth-child(3){animation-delay:0.4s;}
+@keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8);}50%{opacity:1;transform:scale(1);}}
+
+/* LANDING */
+#landing{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 24px;text-align:center;background:var(--bg);}
+.landing-eyebrow{display:inline-flex;align-items:center;gap:6px;background:var(--accentBg);border:1px solid var(--accentBorder);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;color:var(--accent2);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:24px;}
+.landing-h1{font-family:var(--fontDisplay);font-size:clamp(36px,5vw,60px);font-weight:700;color:var(--text);letter-spacing:-1.5px;line-height:1.1;margin-bottom:16px;max-width:700px;}
+.landing-h1 .grd{background:linear-gradient(90deg,var(--accent2),#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.landing-sub{font-size:18px;color:var(--text2);max-width:500px;line-height:1.6;margin-bottom:40px;}
+.landing-worlds{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-width:760px;width:100%;margin-bottom:40px;}
+.landing-world-btn{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 14px;cursor:pointer;transition:all 0.2s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.landing-world-btn:hover{border-color:var(--accentBorder);background:var(--accentBg);transform:translateY(-2px);}
+.landing-world-btn .we{font-size:28px;}
+.landing-world-btn .wl{font-size:13px;font-weight:500;color:var(--text2);}
+.landing-world-btn:hover .wl{color:var(--accent2);}
+.landing-cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* SECTION */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.section-title{font-size:16px;font-weight:600;color:var(--text);}
+.section-link{font-size:13px;color:var(--accent2);cursor:pointer;transition:color 0.15s;}
+.section-link:hover{color:var(--text);}
+
+/* MEMBERSHIP */
+.sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;position:relative;overflow:hidden;}
+.sub-card.pro{border-color:var(--accentBorder);}
+.sub-card.pro::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),#a855f7);}
+.sub-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:3px 10px;border-radius:20px;margin-bottom:14px;}
+.sub-tag.free{background:var(--greenBg);color:var(--green);border:1px solid rgba(34,197,94,0.3);}
+.sub-tag.pro-tag{background:var(--accentBg);color:var(--accent2);border:1px solid var(--accentBorder);}
+.sub-price{font-size:36px;font-weight:700;font-family:var(--fontDisplay);color:var(--text);}
+.sub-price span{font-size:16px;color:var(--text3);font-weight:400;}
+.sub-desc{font-size:13px;color:var(--text2);margin:8px 0 18px;}
+.sub-feature{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);margin-bottom:8px;}
+.sub-feature i{color:var(--green);font-size:16px;}
+.sub-feature i.no{color:var(--text3);}
+
+/* SEARCH OVERLAY */
+.search-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:start;justify-content:center;padding-top:80px;z-index:500;}
+.search-overlay.open{display:flex;}
+.search-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:20px;width:560px;max-width:90%;}
+.search-input-wrap{position:relative;margin-bottom:16px;}
+.search-input-wrap input{width:100%;background:var(--bg3);border:1px solid var(--accentBorder);border-radius:10px;padding:12px 16px 12px 44px;color:var(--text);font-size:16px;font-family:var(--font);outline:none;}
+.search-results{display:flex;flex-direction:column;gap:8px;}
+.search-result{padding:10px 14px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;}
+.search-result:hover{border-color:var(--accentBorder);background:var(--accentBg);}
+.search-result-text{flex:1;}
+.search-result-title{font-size:14px;font-weight:500;color:var(--text);}
+.search-result-sub{font-size:12px;color:var(--text3);}
+
+/* NOTIFICATIONS */
+.notif-badge{position:relative;}
+.notif-badge::after{content:'3';position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;}
+
+/* LIVE */
+.live-badge{background:rgba(239,68,68,0.15);color:var(--red);border:1px solid rgba(239,68,68,0.3);font-size:10px;font-weight:700;letter-spacing:0.1em;padding:2px 8px;border-radius:20px;text-transform:uppercase;}
+
+/* VOICE */
+.voice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.voice-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color 0.2s;}
+.voice-card:hover{border-color:var(--accentBorder);}
+.voice-card.live{border-color:rgba(239,68,68,0.4);}
+.voice-header{display:flex;align-items:start;justify-content:space-between;margin-bottom:10px;}
+.voice-title{font-size:15px;font-weight:600;color:var(--text);}
+.voice-desc{font-size:13px;color:var(--text2);margin-bottom:14px;}
+.voice-participants{display:flex;margin-bottom:10px;}
+.voice-avatar{width:28px;height:28px;border-radius:50%;border:2px solid var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin-left:-6px;}
+.voice-avatar:first-child{margin-left:0;}
+.voice-count{font-size:12px;color:var(--text3);margin-left:8px;}
+.voice-footer{display:flex;align-items:center;justify-content:space-between;}
+
+/* FILES */
+.files-list{display:flex;flex-direction:column;gap:10px;}
+.file-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.2s;}
+.file-item:hover{border-color:var(--border2);}
+.file-icon{width:40px;height:40px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+
+/* EVENTS */
+.event-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px;display:flex;gap:16px;cursor:pointer;transition:border-color 0.2s;}
+.event-card:hover{border-color:var(--accentBorder);}
+.event-date{background:var(--accentBg);border:1px solid var(--accentBorder);border-radius:10px;padding:10px 14px;text-align:center;min-width:58px;flex-shrink:0;}
+.event-month{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent2);}
+.event-day{font-size:26px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);line-height:1;}
+.event-info{flex:1;}
+.event-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.event-desc{font-size:13px;color:var(--text2);margin-bottom:10px;}
+.event-meta{display:flex;gap:12px;}
+.event-meta-item{font-size:12px;color:var(--text3);display:flex;align-items:center;gap:4px;}
+
+/* SETTINGS */
+.settings-layout{display:grid;grid-template-columns:200px 1fr;gap:24px;padding:28px;}
+.settings-nav{display:flex;flex-direction:column;gap:4px;}
+.settings-nav-item{padding:8px 12px;border-radius:8px;font-size:14px;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.settings-nav-item:hover{background:var(--bg3);color:var(--text);}
+.settings-nav-item.active{background:var(--accentBg);color:var(--accent2);}
+.settings-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;}
+.settings-section h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.settings-section p{font-size:13px;color:var(--text3);margin-bottom:20px;}
+
+/* LANG BTN */
+.lang-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:border-color 0.2s;}
+.lang-btn:hover{border-color:var(--border2);color:var(--text);}
+.lang-dropdown{position:absolute;top:54px;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:6px;display:none;min-width:140px;z-index:200;box-shadow:var(--shadow);}
+.lang-dropdown.open{display:block;}
+.lang-option{padding:8px 12px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);transition:all 0.15s;display:flex;align-items:center;gap:8px;}
+.lang-option:hover{background:var(--bg3);color:var(--text);}
+.lang-option.active{color:var(--accent2);background:var(--accentBg);}
+
+/* SCHEMA INFO */
+.db-schema{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.db-table{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;}
+.db-table-header{background:var(--accentBg);border-bottom:1px solid var(--accentBorder);padding:8px 12px;font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em;}
+.db-field{padding:5px 12px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center;}
+.db-field:last-child{border-bottom:none;}
+.db-type{font-size:10px;color:var(--text3);margin-left:auto;}
+.db-pk{color:var(--amber);font-size:10px;}
+.db-fk{color:var(--green);font-size:10px;}
+
+@media(max-width:900px){.sidebar{display:none;}.ai-panel{display:none;}.stats-grid{grid-template-columns:repeat(2,1fr);}.sub-grid{grid-template-columns:1fr;}}
+@media(max-width:600px){.topbar-search{display:none;}.stats-grid{grid-template-columns:1fr 1fr;}.tab-panel{padding:16px;}.world-header{padding:16px 16px 0;}}
+</style>
+</head>
+<body id="artifacts-component-root-html">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo" onclick="showLanding()">WorldHub<span>β</span></div>
+  <div class="topbar-search">
+    <i class="ti ti-search si"></i>
+    <input type="text" placeholder="Search people, posts, worlds..." onclick="openSearch()" readonly="">
+  </div>
+  <div class="topbar-actions" style="position:relative">
+    <div class="lang-btn" onclick="toggleLang()" id="langBtn"><i class="ti ti-world"></i><span id="langLabel">EN</span><i class="ti ti-chevron-down" style="font-size:12px"></i></div>
+    <div class="lang-dropdown" id="langDropdown">
+      <div class="lang-option active" onclick="setLang(&#39;EN&#39;,&#39;English&#39;)"><span>🇺🇸</span> English</div>
+      <div class="lang-option" onclick="setLang(&#39;AR&#39;,&#39;العربية&#39;)"><span>🇸🇦</span> العربية</div>
+      <div class="lang-option" onclick="setLang(&#39;FR&#39;,&#39;Français&#39;)"><span>🇫🇷</span> Français</div>
+      <div class="lang-option" onclick="setLang(&#39;ES&#39;,&#39;Español&#39;)"><span>🇪🇸</span> Español</div>
+    </div>
+    <div class="notif-btn notif-badge" onclick="showModal(&#39;notifModal&#39;)"><i class="ti ti-bell"></i></div>
+    <div id="topbarAvatar" style="display:none">
+      <div class="avatar-btn" onclick="showPage(&#39;profile&#39;)" title="Your Profile" id="avatarInitials">YO</div>
+    </div>
+    <div id="topbarAuth">
+      <button class="login-btn" onclick="showModal(&#39;authModal&#39;)"><i class="ti ti-login"></i> Sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay" onclick="closeSearchOverlay(event)">
+  <div class="search-box" onclick="event.stopPropagation()">
+    <div class="search-input-wrap">
+      <i class="ti ti-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:18px"></i>
+      <input type="text" id="liveSearch" placeholder="Search worlds, people, posts, companies..." oninput="doSearch(this.value)" autofocus="">
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-result" onclick="selectWorld(&#39;dev&#39;)"><div style="font-size:22px">💻</div><div class="search-result-text"><div class="search-result-title">World of Programming</div><div class="search-result-sub">48.3K members · Flutter · React · AI</div></div><i class="ti ti-arrow-right" style="color:var(--text3)"></i></div>
+      <div class="search-result" onclick="selectWorld(&#39;ai&#39;)"><div style="font-size:22px">🤖</div><div class="search-result-text"><div class="search-result-title">World of AI &amp; ML</div><div class="search-result-sub">32.1K members · Machine Learning · LLMs</div></div><i class="ti ti-arrow-right" style="color:var(--text3)"></i></div>
+      <div class="search-result" onclick="selectWorld(&#39;med&#39;)"><div style="font-size:22px">🩺</div><div class="search-result-text"><div class="search-result-title">World of Medicine</div><div class="search-result-sub">19.4K members · Cardiology · Surgery · Research</div></div><i class="ti ti-arrow-right" style="color:var(--text3)"></i></div>
+      <div class="search-result" onclick="openExpertProfile({name:&#39;Ahmed Karim&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇪🇬 Egypt&#39;,initials:&#39;AK&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;Firebase&#39;],bio:&#39;5 years building cross-platform apps. Open source contributor.&#39;})">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;flex-shrink:0">AK</div>
+        <div class="search-result-text"><div class="search-result-title">Ahmed Karim</div><div class="search-result-sub">Flutter Developer · Egypt · 5 yrs exp</div></div>
+        <i class="ti ti-arrow-right" style="color:var(--text3)"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">My Worlds</div>
+      <div class="world-item active" onclick="openWorld(&#39;dev&#39;)" id="nav-dev"><span class="world-emoji">💻</span><span class="world-name">Programming</span><span class="world-badge">12</span></div>
+      <div class="world-item" onclick="openWorld(&#39;ai&#39;)" id="nav-ai"><span class="world-emoji">🤖</span><span class="world-name">AI &amp; ML</span></div>
+      <div class="world-item" onclick="openWorld(&#39;design&#39;)" id="nav-design"><span class="world-emoji">🎨</span><span class="world-name">Design</span><span class="world-badge">3</span></div>
+      <div class="world-item" onclick="openWorld(&#39;biz&#39;)" id="nav-biz"><span class="world-emoji">💼</span><span class="world-name">Entrepreneurship</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Discover Worlds</div>
+      <div class="world-item" onclick="openWorld(&#39;med&#39;)" id="nav-med"><span class="world-emoji">🩺</span><span class="world-name">Medicine</span></div>
+      <div class="world-item" onclick="openWorld(&#39;edu&#39;)" id="nav-edu"><span class="world-emoji">🎓</span><span class="world-name">Education</span></div>
+      <div class="world-item" onclick="openWorld(&#39;photo&#39;)" id="nav-photo"><span class="world-emoji">📷</span><span class="world-name">Photography</span></div>
+      <div class="world-item" onclick="openWorld(&#39;game&#39;)" id="nav-game"><span class="world-emoji">🎮</span><span class="world-name">Gaming</span></div>
+      <div class="world-item" onclick="openWorld(&#39;finance&#39;)" id="nav-finance"><span class="world-emoji">📈</span><span class="world-name">Finance</span></div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section" style="padding-bottom:16px">
+      <div class="sidebar-label">Quick Actions</div>
+      <div class="world-item" onclick="showModal(&#39;createModal&#39;)"><span class="world-emoji" style="font-size:16px"><i class="ti ti-plus" style="color:var(--accent2)"></i></span><span class="world-name">Create World</span></div>
+      <div class="world-item" onclick="showPage(&#39;settings&#39;)"><span class="world-emoji" style="font-size:16px"><i class="ti ti-settings" style="color:var(--text3)"></i></span><span class="world-name">Settings</span></div>
+      <div class="world-item" onclick="showPage(&#39;database&#39;)"><span class="world-emoji" style="font-size:16px"><i class="ti ti-database" style="color:var(--text3)"></i></span><span class="world-name">DB Schema</span></div>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="content-area" id="contentArea">
+
+    <!-- LANDING -->
+    <div id="landing" style="display: none;">
+      <div class="landing-eyebrow"><i class="ti ti-world"></i> Join 2M+ professionals</div>
+      <h1 class="landing-h1">Connect in your <span class="grd">World</span></h1>
+      <p class="landing-sub">Specialized communities built for your profession. Real experts, real jobs, real marketplace — everything your field needs.</p>
+      <div class="landing-worlds">
+        <div class="landing-world-btn" onclick="openWorld(&#39;dev&#39;)"><div class="we">💻</div><div class="wl">Programming</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;med&#39;)"><div class="we">🩺</div><div class="wl">Medicine</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;biz&#39;)"><div class="we">💼</div><div class="wl">Entrepreneurship</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;edu&#39;)"><div class="we">🎓</div><div class="wl">Education</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;design&#39;)"><div class="we">🎨</div><div class="wl">Design</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;photo&#39;)"><div class="we">📷</div><div class="wl">Photography</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;ai&#39;)"><div class="we">🤖</div><div class="wl">AI &amp; ML</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;game&#39;)"><div class="we">🎮</div><div class="wl">Gaming</div></div>
+        <div class="landing-world-btn" onclick="openWorld(&#39;finance&#39;)"><div class="we">📈</div><div class="wl">Finance</div></div>
+      </div>
+      <div class="landing-cta-row">
+        <button class="btn btn-primary" style="padding:12px 28px;font-size:15px" onclick="showModal(&#39;authModal&#39;)"><i class="ti ti-rocket"></i> Get Started Free</button>
+        <button class="btn btn-ghost" style="padding:12px 24px;font-size:15px" onclick="openWorld(&#39;dev&#39;)"><i class="ti ti-eye"></i> Explore</button>
+      </div>
+    </div>
+
+    <!-- WORLD VIEW -->
+    <div id="worldView" style="display: block;">
+      <div class="world-header">
+        <div class="world-hero">
+          <div class="world-icon-big" id="worldIcon">💻</div>
+          <div class="world-info">
+            <h1 id="worldTitle">World of Programming</h1>
+            <div class="world-meta">
+              <div class="world-meta-item"><i class="ti ti-users"></i> <span id="worldMembers">48.3K</span> members</div>
+              <div class="world-meta-item"><i class="ti ti-circle-filled" style="color:var(--green);font-size:8px"></i> <span id="worldOnline">1.2K</span> online</div>
+              <div class="world-meta-item"><i class="ti ti-message-2"></i> <span id="worldPosts">2.8K</span> posts</div>
+            </div>
+          </div>
+          <div class="world-actions">
+            <button class="btn btn-ghost" onclick="openSearch()"><i class="ti ti-search"></i> Search</button>
+            <button class="btn btn-primary" onclick="showModal(&#39;joinModal&#39;)"><i class="ti ti-check"></i> Join World</button>
+          </div>
+        </div>
+        <div class="world-tabs">
+          <button class="tab-btn active" onclick="switchTab(&#39;home&#39;)"><i class="ti ti-home"></i> Home</button>
+          <button class="tab-btn" onclick="switchTab(&#39;posts&#39;)"><i class="ti ti-news"></i> Posts</button>
+          <button class="tab-btn" onclick="switchTab(&#39;experts&#39;)"><i class="ti ti-award"></i> Experts</button>
+          <button class="tab-btn" onclick="switchTab(&#39;companies&#39;)"><i class="ti ti-building"></i> Companies</button>
+          <button class="tab-btn" onclick="switchTab(&#39;chat&#39;)"><i class="ti ti-message-2"></i> Chat</button>
+          <button class="tab-btn" onclick="switchTab(&#39;voice&#39;)"><i class="ti ti-microphone"></i> Voice</button>
+          <button class="tab-btn" onclick="switchTab(&#39;market&#39;)"><i class="ti ti-shopping-bag"></i> Marketplace</button>
+          <button class="tab-btn" onclick="switchTab(&#39;jobs&#39;)"><i class="ti ti-briefcase"></i> Jobs</button>
+          <button class="tab-btn" onclick="switchTab(&#39;events&#39;)"><i class="ti ti-calendar"></i> Events</button>
+          <button class="tab-btn" onclick="switchTab(&#39;files&#39;)"><i class="ti ti-folder"></i> Files</button>
+          <button class="tab-btn" onclick="switchTab(&#39;membership&#39;)"><i class="ti ti-crown"></i> Membership</button>
+        </div>
+      </div>
+
+      <!-- HOME TAB -->
+      <div class="tab-panel active" id="tab-home">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="s-members">48.3K</div><div class="stat-sub">+124 today</div></div>
+          <div class="stat-card"><div class="stat-label">Posts Today</div><div class="stat-value">342</div><div class="stat-sub">+18% vs avg</div></div>
+          <div class="stat-card"><div class="stat-label">Online Now</div><div class="stat-value" id="s-online">1.2K</div><div class="stat-sub">Active right now</div></div>
+          <div class="stat-card"><div class="stat-label">Open Jobs</div><div class="stat-value">87</div><div class="stat-sub">12 new this week</div></div>
+        </div>
+        <div style="display:flex;gap:20px">
+          <div style="flex:1;min-width:0">
+            <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab(&#39;posts&#39;)">See all</div></div>
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff" onclick="openExpertProfile({name:&#39;Sara Rahman&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇧🇩 Bangladesh&#39;,initials:&#39;SR&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;Hive&#39;,&#39;Architecture&#39;],bio:&#39;Senior Flutter developer with 6 years experience. Open source contributor and community educator.&#39;})">SR</div>
+                <div class="post-meta"><div class="post-author">Sara Rahman</div><div class="post-time">2 hours ago</div></div>
+                <div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">Flutter</div>
+              </div>
+              <div class="post-title">Built a full offline-first app with Flutter + Hive — here's my architecture</div>
+              <div class="post-body">After 3 months of struggling with sync conflicts, I finally cracked the pattern. Sharing the complete source with state management...</div>
+              <div class="post-tags"><span class="tag">Flutter</span><span class="tag">Hive</span><span class="tag">Architecture</span></div>
+              <div class="post-footer">
+                <div class="post-action"><i class="ti ti-heart"></i> 284</div>
+                <div class="post-action"><i class="ti ti-message-2"></i> 47</div>
+                <div class="post-action"><i class="ti ti-share"></i> Share</div>
+              </div>
+            </div>
+            <div class="post-card">
+              <div class="post-header">
+                <div class="post-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff" onclick="openExpertProfile({name:&#39;Mokhtar K.&#39;,role:&#39;Systems Engineer&#39;,country:&#39;🇩🇿 Algeria&#39;,initials:&#39;MK&#39;,color:&#39;linear-gradient(135deg,#22c55e,#0ea5e9)&#39;,skills:[&#39;Rust&#39;,&#39;Python&#39;,&#39;Systems&#39;,&#39;Performance&#39;],bio:&#39;Low-level systems engineer passionate about performance. Rust evangelist.&#39;})">MK</div>
+                <div class="post-meta"><div class="post-author">Mokhtar K.</div><div class="post-time">5 hours ago</div></div>
+                <div class="post-badge" style="background:var(--greenBg);color:var(--green);border-color:rgba(34,197,94,0.3)">Rust</div>
+              </div>
+              <div class="post-title">Why I rewrote my Python backend in Rust — 40x performance gain</div>
+              <div class="post-body">Benchmark results attached. The memory footprint dropped from 800MB to 22MB with identical throughput under load testing...</div>
+              <div class="post-footer">
+                <div class="post-action"><i class="ti ti-heart"></i> 512</div>
+                <div class="post-action"><i class="ti ti-message-2"></i> 93</div>
+                <div class="post-action"><i class="ti ti-share"></i> Share</div>
+              </div>
+            </div>
+          </div>
+          <div style="width:240px;flex-shrink:0">
+            <div class="section-header"><div class="section-title">Top Experts</div><div class="section-link" onclick="switchTab(&#39;experts&#39;)">See all</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openExpertProfile({name:&#39;Sara Rahman&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇧🇩 Bangladesh&#39;,initials:&#39;SR&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;Firebase&#39;],bio:&#39;Senior Flutter developer and open source contributor.&#39;})">
+                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">SR</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">Sara Rahman</div><div style="font-size:11px;color:var(--accent2)">Flutter Developer</div></div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text3)"><i class="ti ti-star-filled" style="color:var(--amber)"></i> 4.9</div>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="openExpertProfile({name:&#39;Mokhtar K.&#39;,role:&#39;Systems Engineer&#39;,country:&#39;🇩🇿 Algeria&#39;,initials:&#39;MK&#39;,color:&#39;linear-gradient(135deg,#22c55e,#0ea5e9)&#39;,skills:[&#39;Rust&#39;,&#39;C++&#39;,&#39;Systems&#39;],bio:&#39;Low-level systems engineer.&#39;})">
+                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">MK</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">Mokhtar K.</div><div style="font-size:11px;color:var(--accent2)">Systems Engineer</div></div>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:3px;font-size:11px;color:var(--text3)"><i class="ti ti-star-filled" style="color:var(--amber)"></i> 4.8</div>
+              </div>
+            </div>
+            <div class="section-header"><div class="section-title">Top Companies</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px"><div style="font-size:22px">🚀</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">NovaDev Inc.</div><div style="font-size:11px;color:var(--text3)">14 open positions</div></div><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button></div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px"><div style="font-size:22px">🧠</div><div><div style="font-size:13px;font-weight:600;color:var(--text)">Synaptic AI</div><div style="font-size:11px;color:var(--text3)">22 open positions</div></div><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- POSTS TAB -->
+      <div class="tab-panel" id="tab-posts">
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;postModal&#39;))"><i class="ti ti-pencil"></i> New Post</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Questions</button>
+          <button class="btn btn-ghost">Showcase</button>
+          <button class="btn btn-ghost">Tutorial</button>
+        </div>
+        <div id="postsContainer">
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff" onclick="openExpertProfile({name:&#39;Sara Rahman&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇧🇩 Bangladesh&#39;,initials:&#39;SR&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;Hive&#39;],bio:&#39;Senior Flutter developer.&#39;})">SR</div>
+              <div class="post-meta"><div class="post-author">Sara Rahman</div><div class="post-time">2h ago · <span style="color:var(--accent2)">Flutter</span></div></div>
+              <div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">Showcase</div>
+            </div>
+            <div class="post-title">Built a full offline-first app with Flutter + Hive</div>
+            <div class="post-body">After 3 months of work, sharing the full source code and architecture diagram. State management done right...</div>
+            <div class="post-tags"><span class="tag">Flutter</span><span class="tag">Hive</span><span class="tag">Architecture</span></div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart"></i> 284</div>
+              <div class="post-action"><i class="ti ti-message-2"></i> 47</div>
+              <div class="post-action"><i class="ti ti-share"></i></div>
+              <div class="post-action"><i class="ti ti-bookmark"></i></div>
+            </div>
+          </div>
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div>
+              <div class="post-meta"><div class="post-author">Mokhtar K.</div><div class="post-time">5h ago · <span style="color:var(--accent2)">Rust</span></div></div>
+              <div class="post-badge" style="background:var(--greenBg);color:var(--green);border-color:rgba(34,197,94,0.3)">Tutorial</div>
+            </div>
+            <div class="post-title">Why I rewrote my Python backend in Rust — 40x performance</div>
+            <div class="post-body">Complete benchmark comparison. Memory from 800MB to 22MB, latency from 120ms to 3ms...</div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart"></i> 512</div>
+              <div class="post-action"><i class="ti ti-message-2"></i> 93</div>
+              <div class="post-action"><i class="ti ti-share"></i></div>
+            </div>
+          </div>
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div>
+              <div class="post-meta"><div class="post-author">Julia P.</div><div class="post-time">1d ago · <span style="color:var(--accent2)">React</span></div></div>
+              <div class="post-badge" style="background:var(--amberBg);color:var(--amber);border-color:rgba(245,158,11,0.3)">Question</div>
+            </div>
+            <div class="post-title">How are you handling auth with Next.js 15 App Router?</div>
+            <div class="post-body">Middleware vs server components for protecting routes — I keep running into hydration mismatches. What's your pattern?</div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart"></i> 89</div>
+              <div class="post-action"><i class="ti ti-message-2"></i> 156</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPERTS TAB -->
+      <div class="tab-panel" id="tab-experts">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div>
+            <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">Expert Profiles</div>
+            <div style="font-size:13px;color:var(--text3)">Verified professionals by specialty</div>
+          </div>
+          <button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;expertModal&#39;))"><i class="ti ti-award"></i> Become an Expert</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-secondary">All Experts</button>
+          <button class="btn btn-ghost">Flutter Dev</button>
+          <button class="btn btn-ghost">React Dev</button>
+          <button class="btn btn-ghost">Backend Eng</button>
+          <button class="btn btn-ghost">DevOps</button>
+          <button class="btn btn-ghost">AI/ML</button>
+        </div>
+        <div class="experts-grid">
+          <div class="expert-card" onclick="openExpertProfile({name:&#39;Sara Rahman&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇧🇩 Bangladesh&#39;,initials:&#39;SR&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;Hive&#39;,&#39;Riverpod&#39;,&#39;Firebase&#39;],bio:&#39;Senior Flutter developer with 6 years experience. Built apps used by 500K+ users. Open source contributor. Available for freelance projects.&#39;})">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7)">SR</div>
+            <div class="expert-name">Sara Rahman</div>
+            <div class="expert-role">Flutter Developer</div>
+            <div class="expert-country">🇧🇩 Bangladesh · 6 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">Flutter</span><span class="expert-skill">Dart</span><span class="expert-skill">Firebase</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">4.9 (84 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>920 likes</span><span>12 posts/wk</span></div>
+          </div>
+          <div class="expert-card" onclick="openExpertProfile({name:&#39;Mokhtar K.&#39;,role:&#39;Systems Engineer&#39;,country:&#39;🇩🇿 Algeria&#39;,initials:&#39;MK&#39;,color:&#39;linear-gradient(135deg,#22c55e,#0ea5e9)&#39;,skills:[&#39;Rust&#39;,&#39;C++&#39;,&#39;Linux&#39;,&#39;Systems&#39;,&#39;Performance&#39;],bio:&#39;Low-level systems engineer passionate about performance. 8 years building high-throughput infrastructure. Rust evangelist and speaker.&#39;})">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">MK</div>
+            <div class="expert-name">Mokhtar K.</div>
+            <div class="expert-role">Systems Engineer</div>
+            <div class="expert-country">🇩🇿 Algeria · 8 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">Rust</span><span class="expert-skill">C++</span><span class="expert-skill">Linux</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">4.8 (61 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>605 likes</span><span>8 posts/wk</span></div>
+          </div>
+          <div class="expert-card" onclick="openExpertProfile({name:&#39;Julia P.&#39;,role:&#39;Full Stack Dev&#39;,country:&#39;🇫🇷 France&#39;,initials:&#39;JP&#39;,color:&#39;linear-gradient(135deg,#f59e0b,#ef4444)&#39;,skills:[&#39;React&#39;,&#39;Next.js&#39;,&#39;TypeScript&#39;,&#39;Node.js&#39;],bio:&#39;Full stack developer specializing in React and Next.js. 5 years building SaaS products. Loves clean architecture.&#39;})">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">JP</div>
+            <div class="expert-name">Julia P.</div>
+            <div class="expert-role">Full Stack Dev</div>
+            <div class="expert-country">🇫🇷 France · 5 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">React</span><span class="expert-skill">Next.js</span><span class="expert-skill">TypeScript</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-half-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">4.7 (42 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>412 likes</span><span>6 posts/wk</span></div>
+          </div>
+          <div class="expert-card" onclick="openExpertProfile({name:&#39;Ahmed Karim&#39;,role:&#39;Flutter Developer&#39;,country:&#39;🇪🇬 Egypt&#39;,initials:&#39;AK&#39;,color:&#39;linear-gradient(135deg,#6c63ff,#a855f7)&#39;,skills:[&#39;Flutter&#39;,&#39;Dart&#39;,&#39;GetX&#39;,&#39;Firebase&#39;,&#39;Supabase&#39;],bio:&#39;Flutter developer building cross-platform apps for 5 years. Worked with clients in 12 countries. Available for mentoring.&#39;})">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7)">AK</div>
+            <div class="expert-name">Ahmed Karim</div>
+            <div class="expert-role">Flutter Developer</div>
+            <div class="expert-country">🇪🇬 Egypt · 5 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">Flutter</span><span class="expert-skill">GetX</span><span class="expert-skill">Supabase</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">4.9 (29 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>310 likes</span><span>5 posts/wk</span></div>
+          </div>
+          <div class="expert-card">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)">TS</div>
+            <div class="expert-name">Tom Schwartz</div>
+            <div class="expert-role">DevOps / SRE</div>
+            <div class="expert-country">🇩🇪 Germany · 10 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">Kubernetes</span><span class="expert-skill">AWS</span><span class="expert-skill">Terraform</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-half-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">4.8 (55 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>780 likes</span><span>9 posts/wk</span></div>
+          </div>
+          <div class="expert-card">
+            <div class="expert-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899)">LM</div>
+            <div class="expert-name">Layla M.</div>
+            <div class="expert-role">AI/ML Engineer</div>
+            <div class="expert-country">🇸🇦 Saudi Arabia · 4 yrs exp</div>
+            <div class="expert-skills"><span class="expert-skill">Python</span><span class="expert-skill">PyTorch</span><span class="expert-skill">LLMs</span></div>
+            <div style="display:flex;align-items:center;gap:3px;justify-content:center;margin-bottom:10px;font-size:12px;color:var(--amber)">
+              <i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i><i class="ti ti-star-filled"></i>
+              <span style="color:var(--text3);margin-left:4px">5.0 (18 reviews)</span>
+            </div>
+            <div class="expert-stats"><span>430 likes</span><span>7 posts/wk</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPANIES TAB -->
+      <div class="tab-panel" id="tab-companies">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div><div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px">Companies</div><div style="font-size:13px;color:var(--text3)">Businesses in this World</div></div>
+          <button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;companyModal&#39;))"><i class="ti ti-building"></i> Add Company</button>
+        </div>
+        <div class="company-card">
+          <div class="company-header">
+            <div class="company-logo-lg">🚀</div>
+            <div style="flex:1">
+              <div class="company-name">NovaDev Inc.</div>
+              <div class="company-industry">Software Development · San Francisco, CA</div>
+              <div class="company-stats">
+                <div class="company-stat"><i class="ti ti-users" style="font-size:12px"></i> 240 employees</div>
+                <div class="company-stat"><i class="ti ti-briefcase" style="font-size:12px"></i> 14 open jobs</div>
+                <div class="company-stat"><i class="ti ti-users-group" style="font-size:12px"></i> 8.2K followers</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary" style="flex-shrink:0">Follow</button>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">Building next-generation developer tools and mobile infrastructure. Our Flutter team is one of the most active in the community.</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><span class="tag">Flutter</span><span class="tag">React Native</span><span class="tag">Backend APIs</span><span class="tag">Series B</span></div>
+        </div>
+        <div class="company-card">
+          <div class="company-header">
+            <div class="company-logo-lg">🧠</div>
+            <div style="flex:1">
+              <div class="company-name">Synaptic AI</div>
+              <div class="company-industry">Artificial Intelligence · Remote-first</div>
+              <div class="company-stats">
+                <div class="company-stat"><i class="ti ti-users" style="font-size:12px"></i> 85 employees</div>
+                <div class="company-stat"><i class="ti ti-briefcase" style="font-size:12px"></i> 22 open jobs</div>
+                <div class="company-stat"><i class="ti ti-users-group" style="font-size:12px"></i> 12.4K followers</div>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="flex-shrink:0">Following</button>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">Building large language model infrastructure for enterprise. Hiring top ML engineers globally. Remote-first culture.</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><span class="tag">LLMs</span><span class="tag">PyTorch</span><span class="tag">Kubernetes</span><span class="tag">Series A</span></div>
+        </div>
+        <div class="company-card">
+          <div class="company-header">
+            <div class="company-logo-lg">⚡</div>
+            <div style="flex:1">
+              <div class="company-name">ByteForge</div>
+              <div class="company-industry">Systems Software · Berlin, Germany</div>
+              <div class="company-stats">
+                <div class="company-stat"><i class="ti ti-users" style="font-size:12px"></i> 120 employees</div>
+                <div class="company-stat"><i class="ti ti-briefcase" style="font-size:12px"></i> 8 open jobs</div>
+                <div class="company-stat"><i class="ti ti-users-group" style="font-size:12px"></i> 5.1K followers</div>
+              </div>
+            </div>
+            <button class="btn btn-secondary" style="flex-shrink:0">Follow</button>
+          </div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6">High-performance systems software built in Rust and C++. We work on databases, compilers, and embedded systems.</div>
+          <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap"><span class="tag">Rust</span><span class="tag">C++</span><span class="tag">Systems</span><span class="tag">Bootstrapped</span></div>
+        </div>
+      </div>
+
+      <!-- CHAT TAB -->
+      <div class="tab-panel" id="tab-chat" style="padding:0">
+        <div class="chat-layout">
+          <div class="chat-sidebar">
+            <div class="sidebar-label" style="padding:12px 8px 6px;font-size:10px">Channels</div>
+            <div class="chat-channel active" onclick="setChannel(this,&#39;#general&#39;)"># general</div>
+            <div class="chat-channel" onclick="setChannel(this,&#39;#flutter&#39;)"># flutter</div>
+            <div class="chat-channel" onclick="setChannel(this,&#39;#jobs&#39;)"># jobs</div>
+            <div class="chat-channel" onclick="setChannel(this,&#39;#showcase&#39;)"># showcase</div>
+            <div class="chat-channel" onclick="setChannel(this,&#39;#help&#39;)"># help-needed</div>
+            <div class="sidebar-label" style="padding:12px 8px 6px;font-size:10px">Direct</div>
+            <div class="chat-channel" onclick="setChannel(this,&#39;Sara Rahman&#39;)">
+              <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a855f7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff">SR</div>
+              Sara Rahman
+            </div>
+          </div>
+          <div class="chat-main">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Sara Rahman</span><span class="chat-msg-time">10:24 AM</span></div><div class="chat-msg-text">Hey everyone! Just pushed v2 of my offline-first starter kit. Would love feedback on the sync layer.</div></div></div>
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Mokhtar K.</span><span class="chat-msg-time">10:31 AM</span></div><div class="chat-msg-text">That's great! How did you handle conflict resolution when merging offline changes?</div></div></div>
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Julia P.</span><span class="chat-msg-time">10:35 AM</span></div><div class="chat-msg-text">Testing it now — initial impressions are really solid. The CRDT approach is clever 🔥</div></div></div>
+            </div>
+            <div class="chat-input-bar">
+              <input class="chat-input" id="chatInput" placeholder="Message #general..." onkeydown="if(event.key===&#39;Enter&#39;)sendChat()">
+              <button class="chat-send" onclick="sendChat()"><i class="ti ti-send"></i></button>
+            </div>
+          </div>
+          <!-- Real Claude AI Panel -->
+          <div class="ai-panel">
+            <div class="ai-header">
+              <div class="ai-orb"><i class="ti ti-robot"></i></div>
+              <div><div class="ai-title">World AI</div><div class="ai-subtitle" id="aiStatus">Powered by Claude</div></div>
+            </div>
+            <div class="ai-messages" id="aiMessages">
+              <div class="ai-msg"><div class="ai-bubble ai-bubble-bot">Hi! I'm your Programming World assistant, powered by Claude. Ask me anything about posts, code, careers, or the community.</div></div>
+            </div>
+            <div class="ai-suggestions">
+              <button class="ai-suggest-btn" onclick="askAI(&#39;Summarize the top posts in this community this week and what developers are talking about&#39;)"><i class="ti ti-notes"></i> Summarize community discussions</button>
+              <button class="ai-suggest-btn" onclick="askAI(&#39;What are the most in-demand programming skills right now and how can I learn them?&#39;)"><i class="ti ti-trending-up"></i> Top skills in demand</button>
+              <button class="ai-suggest-btn" onclick="askAI(&#39;Give me tips for writing a great technical post that gets noticed in a programming community&#39;)"><i class="ti ti-bulb"></i> Tips for great posts</button>
+            </div>
+            <div class="ai-input-bar">
+              <input class="ai-input" id="aiInput" placeholder="Ask Claude anything..." onkeydown="if(event.key===&#39;Enter&#39;)askAI()">
+              <button class="ai-send" onclick="askAI()"><i class="ti ti-send"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VOICE TAB -->
+      <div class="tab-panel" id="tab-voice">
+        <div style="display:flex;gap:12px;margin-bottom:20px"><button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;voiceModal&#39;))"><i class="ti ti-microphone"></i> Create Room</button></div>
+        <div class="voice-grid">
+          <div class="voice-card live"><div class="voice-header"><div class="voice-title">Flutter State Management Debate</div><span class="live-badge">LIVE</span></div><div class="voice-desc">Riverpod vs Bloc vs Provider — which wins in 2025?</div><div class="voice-participants"><div class="voice-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div><div class="voice-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div><div class="voice-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div><div class="voice-avatar" style="background:var(--bg4);color:var(--text3)">+8</div><span class="voice-count">11 listening</span></div><div class="voice-footer"><div></div><button class="btn btn-primary" style="padding:6px 14px;font-size:12px"><i class="ti ti-headphones"></i> Join</button></div></div>
+          <div class="voice-card"><div class="voice-header"><div class="voice-title">Ask a Senior Dev Anything</div><span style="background:var(--greenBg);color:var(--green);border:1px solid rgba(34,197,94,0.3);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">OPEN</span></div><div class="voice-desc">Weekly office hours — bring your toughest questions</div><div class="voice-participants"><div class="voice-avatar" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff">AJ</div><div class="voice-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff">LM</div><span class="voice-count">Starts in 2h</span></div><div class="voice-footer"><div></div><button class="btn btn-secondary" style="padding:6px 14px;font-size:12px"><i class="ti ti-bell"></i> Remind me</button></div></div>
+        </div>
+      </div>
+
+      <!-- MARKETPLACE TAB -->
+      <div class="tab-panel" id="tab-market">
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;sellModal&#39;))"><i class="ti ti-plus"></i> Sell Product</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Templates</button>
+          <button class="btn btn-ghost">Code</button>
+          <button class="btn btn-ghost">Plugins</button>
+        </div>
+        <div class="market-grid">
+          <div class="market-card"><div class="market-thumb">🎨</div><div class="market-info"><div class="market-title">Admin Dashboard Template</div><div class="market-seller">by Sara Rahman</div><div class="market-footer"><div class="market-price">$29</div><div class="market-rating"><i class="ti ti-star-filled"></i> 4.9</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">⚡</div><div class="market-info"><div class="market-title">Flutter Auth Kit</div><div class="market-seller">by Mokhtar K.</div><div class="market-footer"><div class="market-price price-free">Free</div><div class="market-rating"><i class="ti ti-star-filled"></i> 4.7</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🤖</div><div class="market-info"><div class="market-title">AI Code Reviewer Bot</div><div class="market-seller">by Julia P.</div><div class="market-footer"><div class="market-price">$49</div><div class="market-rating"><i class="ti ti-star-filled"></i> 5.0</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">📱</div><div class="market-info"><div class="market-title">Mobile SaaS Starter</div><div class="market-seller">by NovaDev Inc.</div><div class="market-footer"><div class="market-price">$79</div><div class="market-rating"><i class="ti ti-star-filled"></i> 4.6</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🔌</div><div class="market-info"><div class="market-title">VS Code AI Extension Pack</div><div class="market-seller">by DevTools Co.</div><div class="market-footer"><div class="market-price">$9/mo</div><div class="market-rating"><i class="ti ti-star-filled"></i> 4.8</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🔧</div><div class="market-info"><div class="market-title">DevOps CI/CD Template</div><div class="market-seller">by ByteForge</div><div class="market-footer"><div class="market-price price-free">Free</div><div class="market-rating"><i class="ti ti-star-filled"></i> 4.5</div></div></div></div>
+        </div>
+      </div>
+
+      <!-- JOBS TAB -->
+      <div class="tab-panel" id="tab-jobs">
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;jobModal&#39;))"><i class="ti ti-plus"></i> Post a Job</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Remote</button>
+          <button class="btn btn-ghost">Full-time</button>
+          <button class="btn btn-ghost">Freelance</button>
+        </div>
+        <div class="job-card"><div class="job-header"><div class="company-logo">🚀</div><div style="flex:1"><div class="job-title">Senior Flutter Developer</div><div class="job-company">NovaDev Inc. · San Francisco, CA</div></div><div class="job-salary">$140K–$180K</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Full-time</span><span class="job-tag">Flutter</span><span class="job-tag">Dart</span><span class="job-tag">Firebase</span></div></div>
+        <div class="job-card"><div class="job-header"><div class="company-logo">⚡</div><div style="flex:1"><div class="job-title">Rust Systems Engineer</div><div class="job-company">ByteForge · Berlin, Germany</div></div><div class="job-salary">€100K–€130K</div></div><div class="job-tags"><span class="job-tag">Hybrid</span><span class="job-tag">Full-time</span><span class="job-tag">Rust</span><span class="job-tag">Linux</span></div></div>
+        <div class="job-card"><div class="job-header"><div class="company-logo">🧠</div><div style="flex:1"><div class="job-title">AI/ML Engineer — LLM Infra</div><div class="job-company">Synaptic AI · Remote</div></div><div class="job-salary">$160K–$220K</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Full-time</span><span class="job-tag">Python</span><span class="job-tag">PyTorch</span></div></div>
+        <div class="job-card"><div class="job-header"><div class="company-logo">🎯</div><div style="flex:1"><div class="job-title">Frontend Developer (React/Next.js)</div><div class="job-company">Freelance · Anywhere</div></div><div class="job-salary">$80–$120/hr</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Freelance</span><span class="job-tag">React</span><span class="job-tag">Next.js</span></div></div>
+      </div>
+
+      <!-- EVENTS TAB -->
+      <div class="tab-panel" id="tab-events">
+        <div style="display:flex;gap:12px;margin-bottom:20px"><button class="btn btn-primary" onclick="requireAuth(()=&gt;showModal(&#39;eventModal&#39;))"><i class="ti ti-plus"></i> Create Event</button><button class="btn btn-secondary">All</button><button class="btn btn-ghost">This Week</button><button class="btn btn-ghost">Online</button></div>
+        <div class="event-card"><div class="event-date"><div class="event-month">JUL</div><div class="event-day">12</div></div><div class="event-info"><div class="event-title">Flutter World Summit 2025</div><div class="event-desc">The biggest Flutter event of the year — 50+ speakers, workshops, and networking.</div><div class="event-meta"><div class="event-meta-item"><i class="ti ti-world"></i> Online</div><div class="event-meta-item"><i class="ti ti-users"></i> 2.4K attending</div></div></div><button class="btn btn-primary" style="flex-shrink:0;align-self:start">RSVP</button></div>
+        <div class="event-card"><div class="event-date"><div class="event-month">JUL</div><div class="event-day">18</div></div><div class="event-info"><div class="event-title">Rust &amp; Systems Programming Hackathon</div><div class="event-desc">48-hour hackathon in Rust. $10K in prizes.</div><div class="event-meta"><div class="event-meta-item"><i class="ti ti-world"></i> Online</div><div class="event-meta-item"><i class="ti ti-trophy"></i> $10K prizes</div></div></div><button class="btn btn-secondary" style="flex-shrink:0;align-self:start">Register</button></div>
+      </div>
+
+      <!-- FILES TAB -->
+      <div class="tab-panel" id="tab-files">
+        <div style="display:flex;gap:12px;margin-bottom:20px"><button class="btn btn-primary" onclick="requireAuth(()=&gt;{})"><i class="ti ti-upload"></i> Upload File</button><button class="btn btn-secondary">All</button><button class="btn btn-ghost">Code</button><button class="btn btn-ghost">Docs</button></div>
+        <div class="files-list">
+          <div class="file-item"><div class="file-icon">📦</div><div><div style="font-size:14px;font-weight:500;color:var(--text)">flutter_offline_starter_v2.zip</div><div style="font-size:12px;color:var(--text3)">Sara Rahman · 3 days ago · 47 downloads</div></div><div style="font-size:12px;color:var(--text3);margin-left:auto">2.4 MB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download"></i></button></div>
+          <div class="file-item"><div class="file-icon">📄</div><div><div style="font-size:14px;font-weight:500;color:var(--text)">rust_vs_python_benchmarks.pdf</div><div style="font-size:12px;color:var(--text3)">Mokhtar K. · 5 days ago · 128 downloads</div></div><div style="font-size:12px;color:var(--text3);margin-left:auto">890 KB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download"></i></button></div>
+          <div class="file-item"><div class="file-icon">🎨</div><div><div style="font-size:14px;font-weight:500;color:var(--text)">figma_dev_ui_kit_2025.fig</div><div style="font-size:12px;color:var(--text3)">Julia P. · 1 week ago · 340 downloads</div></div><div style="font-size:12px;color:var(--text3);margin-left:auto">18.7 MB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download"></i></button></div>
+        </div>
+      </div>
+
+      <!-- MEMBERSHIP TAB -->
+      <div class="tab-panel" id="tab-membership">
+        <div style="margin-bottom:24px"><div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);margin-bottom:6px">World of Programming Membership</div><div style="font-size:14px;color:var(--text2)">Choose the plan that fits your goals</div></div>
+        <div class="sub-grid">
+          <div class="sub-card"><div class="sub-tag free"><i class="ti ti-leaf"></i> Free</div><div class="sub-price">$0 <span>/month</span></div><div class="sub-desc">Great for exploring and staying informed.</div><div class="sub-feature"><i class="ti ti-check"></i> Browse all posts</div><div class="sub-feature"><i class="ti ti-check"></i> Comment and reply</div><div class="sub-feature"><i class="ti ti-check"></i> Post up to 3/day</div><div class="sub-feature"><i class="ti ti-check"></i> Browse marketplace</div><div class="sub-feature"><i class="ti ti-x no"></i> Sell on marketplace</div><div class="sub-feature"><i class="ti ti-x no"></i> Create events</div><div class="sub-feature"><i class="ti ti-x no"></i> Company page</div><button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:20px">Current Plan</button></div>
+          <div class="sub-card pro"><div class="sub-tag pro-tag"><i class="ti ti-crown"></i> Pro</div><div class="sub-price">$12 <span>/month</span></div><div class="sub-desc">For professionals who want to publish, sell, and grow.</div><div class="sub-feature"><i class="ti ti-check"></i> Everything in Free</div><div class="sub-feature"><i class="ti ti-check"></i> Unlimited posts</div><div class="sub-feature"><i class="ti ti-check"></i> Sell on marketplace</div><div class="sub-feature"><i class="ti ti-check"></i> Create events</div><div class="sub-feature"><i class="ti ti-check"></i> Expert profile</div><div class="sub-feature"><i class="ti ti-check"></i> Company page</div><div class="sub-feature"><i class="ti ti-check"></i> Advanced analytics</div><button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="requireAuth(()=&gt;showModal(&#39;upgradeModal&#39;))"><i class="ti ti-crown"></i> Upgrade to Pro</button></div>
+        </div>
+      </div>
+
+    </div><!-- /worldView -->
+
+    <!-- PROFILE PAGE -->
+    <div id="profilePage" style="display:none">
+      <div class="profile-page">
+        <div class="profile-cover">
+          <div class="profile-cover-pattern"></div>
+          <div class="profile-avatar-wrap">
+            <div class="profile-avatar-lg" id="profileAvatarLg">YO</div>
+          </div>
+        </div>
+        <div class="profile-body">
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:16px">
+            <button class="btn btn-ghost" onclick="showModal(&#39;editProfileModal&#39;)"><i class="ti ti-pencil"></i> Edit Profile</button>
+            <button class="btn btn-ghost" onclick="showPage(&#39;settings&#39;)"><i class="ti ti-settings"></i> Settings</button>
+          </div>
+          <div class="profile-name" id="profileName">Your Name</div>
+          <div class="profile-headline" id="profileHeadline">Add a headline...</div>
+          <div class="profile-badges">
+            <span class="profile-badge badge-verified"><i class="ti ti-check" style="font-size:10px"></i> Verified</span>
+            <span class="profile-badge badge-expert" id="expertBadge" style="display:none"><i class="ti ti-award" style="font-size:10px"></i> Expert</span>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat"><div class="profile-stat-val">0</div><div class="profile-stat-label">Posts</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">0</div><div class="profile-stat-label">Followers</div></div>
+            <div class="profile-stat"><div class="profile-stat-val">0</div><div class="profile-stat-label">Following</div></div>
+          </div>
+          <div class="profile-bio" id="profileBio">No bio yet. Tell the community about yourself.</div>
+          <div class="profile-meta-row">
+            <div class="profile-meta-item" id="profileCountry"><i class="ti ti-map-pin"></i> <span>Not set</span></div>
+            <div class="profile-meta-item" id="profileLangs"><i class="ti ti-language"></i> <span>Not set</span></div>
+            <div class="profile-meta-item" id="profileEmail" style="display:none"><i class="ti ti-mail"></i> <span id="profileEmailText"></span></div>
+          </div>
+          <div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">Skills</div><div class="skills-wrap" id="profileSkills"><span style="font-size:13px;color:var(--text3)">Add skills in your profile settings</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div id="settingsPage" style="display:none">
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:8px">Settings</div>
+          <div class="settings-nav-item active" onclick="switchSettings(this,&#39;accountSettings&#39;)"><i class="ti ti-user"></i> Account</div>
+          <div class="settings-nav-item" onclick="switchSettings(this,&#39;profileSettings&#39;)"><i class="ti ti-id-badge"></i> Profile</div>
+          <div class="settings-nav-item" onclick="switchSettings(this,&#39;privacySettings&#39;)"><i class="ti ti-lock"></i> Privacy</div>
+          <div class="settings-nav-item" onclick="switchSettings(this,&#39;notifSettings&#39;)"><i class="ti ti-bell"></i> Notifications</div>
+          <div class="settings-nav-item" onclick="switchSettings(this,&#39;dangerSettings&#39;)" style="color:var(--red);margin-top:16px"><i class="ti ti-trash"></i> Danger Zone</div>
+        </div>
+        <div style="flex:1">
+          <div id="accountSettings">
+            <div class="settings-section">
+              <h3>Account details</h3>
+              <p>Manage your email, password, and login methods.</p>
+              <div class="form-group"><label class="form-label">Email</label><input class="modal-input" type="email" id="settingsEmail" placeholder="your@email.com"></div>
+              <div class="form-group"><label class="form-label">Username</label><input class="modal-input" placeholder="@username" id="settingsUsername"></div>
+              <div class="form-group"><label class="form-label">New Password</label><input class="modal-input" type="password" placeholder="Leave blank to keep current"></div>
+              <button class="btn btn-primary" onclick="saveAccountSettings()"><i class="ti ti-check"></i> Save changes</button>
+            </div>
+            <div class="settings-section">
+              <h3>Connected accounts</h3>
+              <p>Sign in faster with these providers.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px"><div style="font-size:20px">🔴</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">Google</div><div style="font-size:12px;color:var(--text3)">Not connected</div></div><button class="btn btn-secondary" style="font-size:12px;padding:5px 12px">Connect</button></div>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px"><div style="font-size:20px">⚫</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">GitHub</div><div style="font-size:12px;color:var(--text3)">Not connected</div></div><button class="btn btn-secondary" style="font-size:12px;padding:5px 12px">Connect</button></div>
+              </div>
+            </div>
+          </div>
+          <div id="profileSettings" style="display:none">
+            <div class="settings-section">
+              <h3>Public profile</h3>
+              <p>This information is visible to other members.</p>
+              <div class="form-group"><label class="form-label">Full Name</label><input class="modal-input" id="settingsName" placeholder="Your full name"></div>
+              <div class="form-group"><label class="form-label">Headline</label><input class="modal-input" id="settingsHeadline" placeholder="e.g. Flutter Developer · 5 yrs experience"></div>
+              <div class="form-group"><label class="form-label">Bio</label><textarea class="modal-input" id="settingsBio" rows="3" style="resize:vertical" placeholder="Tell the community about yourself..."></textarea></div>
+              <div class="form-row">
+                <div><label class="form-label">Country</label><input class="modal-input" id="settingsCountry" placeholder="e.g. Algeria"></div>
+                <div><label class="form-label">Languages</label><input class="modal-input" id="settingsLangs" placeholder="e.g. Arabic, English, French"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Skills (comma-separated)</label><input class="modal-input" id="settingsSkills" placeholder="e.g. Flutter, Dart, Firebase, Riverpod"></div>
+              <button class="btn btn-primary" onclick="saveProfileSettings()"><i class="ti ti-check"></i> Save profile</button>
+            </div>
+            <div class="settings-section">
+              <h3>Expert profile</h3>
+              <p>Apply to become a verified expert in your field. Experts get a badge and appear in the Experts tab.</p>
+              <div class="form-group"><label class="form-label">Primary expertise</label>
+                <select class="modal-input" style="appearance:auto" id="settingsExpertRole">
+                  <option value="">Select specialty...</option>
+                  <option>Flutter Developer</option><option>React Developer</option><option>Backend Engineer</option><option>DevOps / SRE</option><option>AI/ML Engineer</option><option>Systems Engineer</option><option>Mobile Developer</option><option>Full Stack Developer</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label">Years of experience</label><input class="modal-input" id="settingsYears" placeholder="e.g. 5" type="number" min="0" max="50"></div>
+              <button class="btn btn-primary" onclick="applyExpert()"><i class="ti ti-award"></i> Apply for Expert status</button>
+            </div>
+          </div>
+          <div id="privacySettings" style="display:none">
+            <div class="settings-section">
+              <h3>Privacy</h3>
+              <p>Control who can see your activity.</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">Show email on profile</span><input type="checkbox" id="privEmail"></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">Allow direct messages</span><input type="checkbox" id="privDM" checked=""></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">Show activity status</span><input type="checkbox" id="privActivity" checked=""></label>
+              </div>
+            </div>
+          </div>
+          <div id="notifSettings" style="display:none">
+            <div class="settings-section">
+              <h3>Notifications</h3>
+              <p>Choose what you want to be notified about.</p>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">New replies to my posts</span><input type="checkbox" checked=""></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">New followers</span><input type="checkbox" checked=""></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">New job matches</span><input type="checkbox" checked=""></label>
+                <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer"><span style="font-size:14px;color:var(--text2)">World news and announcements</span><input type="checkbox" checked=""></label>
+              </div>
+            </div>
+          </div>
+          <div id="dangerSettings" style="display:none">
+            <div class="settings-section" style="border-color:rgba(239,68,68,0.3)">
+              <h3 style="color:var(--red)">Danger zone</h3>
+              <p>These actions are permanent and cannot be undone.</p>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:8px"><div><div style="font-size:13px;font-weight:600;color:var(--text)">Deactivate account</div><div style="font-size:12px;color:var(--text3)">Temporarily disable your account</div></div><button class="btn btn-danger" style="font-size:12px;padding:5px 12px">Deactivate</button></div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.2);border-radius:8px"><div><div style="font-size:13px;font-weight:600;color:var(--red)">Delete account</div><div style="font-size:12px;color:var(--text3)">Permanently delete everything</div></div><button class="btn btn-danger" style="font-size:12px;padding:5px 12px">Delete</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATABASE SCHEMA PAGE -->
+    <div id="databasePage" style="display:none;padding:28px">
+      <div style="margin-bottom:24px"><div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);margin-bottom:6px">Database Schema</div><div style="font-size:14px;color:var(--text2)">Recommended structure for WorldHub backend — ready for Supabase, PlanetScale, or any SQL database</div></div>
+      <div class="db-schema">
+        <div class="db-table"><div class="db-table-header">Users</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field">email<span class="db-type">text unique</span></div><div class="db-field">username<span class="db-type">text unique</span></div><div class="db-field">name<span class="db-type">text</span></div><div class="db-field">avatar_url<span class="db-type">text</span></div><div class="db-field">bio<span class="db-type">text</span></div><div class="db-field">headline<span class="db-type">text</span></div><div class="db-field">country<span class="db-type">text</span></div><div class="db-field">languages<span class="db-type">text[]</span></div><div class="db-field">skills<span class="db-type">text[]</span></div><div class="db-field">is_expert<span class="db-type">bool</span></div><div class="db-field">expert_role<span class="db-type">text</span></div><div class="db-field">years_exp<span class="db-type">int</span></div><div class="db-field">auth_provider<span class="db-type">text</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Worlds</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field">slug<span class="db-type">text unique</span></div><div class="db-field">name<span class="db-type">text</span></div><div class="db-field">icon<span class="db-type">text</span></div><div class="db-field">description<span class="db-type">text</span></div><div class="db-field">category<span class="db-type">text</span></div><div class="db-field">member_count<span class="db-type">int</span></div><div class="db-field"><span class="db-fk">FK</span> owner_id<span class="db-type">uuid</span></div><div class="db-field">is_public<span class="db-type">bool</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Posts</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> user_id<span class="db-type">uuid</span></div><div class="db-field">title<span class="db-type">text</span></div><div class="db-field">body<span class="db-type">text</span></div><div class="db-field">type<span class="db-type">text</span></div><div class="db-field">tags<span class="db-type">text[]</span></div><div class="db-field">likes_count<span class="db-type">int</span></div><div class="db-field">comments_count<span class="db-type">int</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Comments</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> post_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> user_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> parent_id<span class="db-type">uuid</span></div><div class="db-field">body<span class="db-type">text</span></div><div class="db-field">likes_count<span class="db-type">int</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Companies</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> owner_id<span class="db-type">uuid</span></div><div class="db-field">name<span class="db-type">text</span></div><div class="db-field">logo_url<span class="db-type">text</span></div><div class="db-field">industry<span class="db-type">text</span></div><div class="db-field">location<span class="db-type">text</span></div><div class="db-field">size<span class="db-type">text</span></div><div class="db-field">bio<span class="db-type">text</span></div><div class="db-field">website<span class="db-type">text</span></div><div class="db-field">tags<span class="db-type">text[]</span></div><div class="db-field">followers_count<span class="db-type">int</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Jobs</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> company_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> poster_id<span class="db-type">uuid</span></div><div class="db-field">title<span class="db-type">text</span></div><div class="db-field">description<span class="db-type">text</span></div><div class="db-field">salary_range<span class="db-type">text</span></div><div class="db-field">location<span class="db-type">text</span></div><div class="db-field">type<span class="db-type">text</span></div><div class="db-field">tags<span class="db-type">text[]</span></div><div class="db-field">is_remote<span class="db-type">bool</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Marketplace</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> seller_id<span class="db-type">uuid</span></div><div class="db-field">title<span class="db-type">text</span></div><div class="db-field">description<span class="db-type">text</span></div><div class="db-field">price<span class="db-type">numeric</span></div><div class="db-field">currency<span class="db-type">text</span></div><div class="db-field">category<span class="db-type">text</span></div><div class="db-field">file_url<span class="db-type">text</span></div><div class="db-field">rating_avg<span class="db-type">numeric</span></div><div class="db-field">sales_count<span class="db-type">int</span></div></div>
+        <div class="db-table"><div class="db-table-header">Events</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> organizer_id<span class="db-type">uuid</span></div><div class="db-field">title<span class="db-type">text</span></div><div class="db-field">description<span class="db-type">text</span></div><div class="db-field">event_date<span class="db-type">timestamp</span></div><div class="db-field">location_type<span class="db-type">text</span></div><div class="db-field">attendees_count<span class="db-type">int</span></div></div>
+        <div class="db-table"><div class="db-table-header">Follows</div><div class="db-field"><span class="db-fk">FK</span> follower_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> following_id<span class="db-type">uuid</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Likes</div><div class="db-field"><span class="db-fk">FK</span> user_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> post_id<span class="db-type">uuid</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">World_Members</div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> user_id<span class="db-type">uuid</span></div><div class="db-field">role<span class="db-type">text</span></div><div class="db-field">plan<span class="db-type">text</span></div><div class="db-field">joined_at<span class="db-type">timestamp</span></div></div>
+        <div class="db-table"><div class="db-table-header">Messages</div><div class="db-field"><span class="db-pk">PK</span> id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> world_id<span class="db-type">uuid</span></div><div class="db-field"><span class="db-fk">FK</span> sender_id<span class="db-type">uuid</span></div><div class="db-field">channel<span class="db-type">text</span></div><div class="db-field">body<span class="db-type">text</span></div><div class="db-field">created_at<span class="db-type">timestamp</span></div></div>
+      </div>
+      <div style="margin-top:28px;background:var(--bg2);border:1px solid var(--accentBorder);border-radius:var(--radius);padding:20px">
+        <div style="font-size:14px;font-weight:600;color:var(--accent2);margin-bottom:8px"><i class="ti ti-info-circle"></i> Recommended Stack</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px">
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Auth:</strong> Supabase Auth or Clerk (supports Google + GitHub)</div>
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Database:</strong> Supabase PostgreSQL or PlanetScale</div>
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Storage:</strong> Supabase Storage or AWS S3</div>
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Real-time:</strong> Supabase Realtime for chat</div>
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">AI:</strong> Anthropic Claude API</div>
+          <div style="font-size:13px;color:var(--text2)"><strong style="color:var(--text)">Payments:</strong> Stripe for marketplace + subscriptions</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /contentArea -->
+</div><!-- /mainLayout -->
+
+<!-- ============ MODALS ============ -->
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay" id="authModal" onclick="closeModal(&#39;authModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;authModal&#39;)"><i class="ti ti-x"></i></button>
+    <div id="authSignIn">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-family:var(--fontDisplay);font-size:22px;font-weight:700;color:var(--accent2);margin-bottom:4px">Welcome back</div>
+        <div style="font-size:13px;color:var(--text3)">Sign in to your WorldHub account</div>
+      </div>
+      <button class="social-btn" onclick="socialSignIn(&#39;Google&#39;)"><div class="social-icon">🔴</div> Continue with Google</button>
+      <button class="social-btn" onclick="socialSignIn(&#39;GitHub&#39;)"><div class="social-icon">⚫</div> Continue with GitHub</button>
+      <div class="auth-divider"><span>or sign in with email</span></div>
+      <div class="form-group">
+        <div class="input-group">
+          <i class="ti ti-mail input-icon"></i>
+          <input class="modal-input" type="email" id="signInEmail" placeholder="your@email.com">
+        </div>
+      </div>
+      <div class="form-group" style="position:relative">
+        <div class="input-group">
+          <i class="ti ti-lock input-icon"></i>
+          <input class="modal-input" type="password" id="signInPw" placeholder="Password">
+        </div>
+      </div>
+      <div style="text-align:right;margin-top:-8px;margin-bottom:14px"><a style="font-size:13px;color:var(--accent2);cursor:pointer">Forgot password?</a></div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="signIn()"><i class="ti ti-login"></i> Sign in</button>
+      <div class="auth-switch">Don't have an account? <a onclick="showAuthScreen(&#39;authSignUp&#39;)">Create one free</a></div>
+    </div>
+    <div id="authSignUp" style="display:none">
+      <div style="text-align:center;margin-bottom:24px">
+        <div style="font-family:var(--fontDisplay);font-size:22px;font-weight:700;color:var(--accent2);margin-bottom:4px">Join WorldHub</div>
+        <div style="font-size:13px;color:var(--text3)">Free forever. No credit card needed.</div>
+      </div>
+      <button class="social-btn" onclick="socialSignIn(&#39;Google&#39;)"><div class="social-icon">🔴</div> Sign up with Google</button>
+      <button class="social-btn" onclick="socialSignIn(&#39;GitHub&#39;)"><div class="social-icon">⚫</div> Sign up with GitHub</button>
+      <div class="auth-divider"><span>or register with email</span></div>
+      <div class="form-row">
+        <div><input class="modal-input" id="regFirst" placeholder="First name"></div>
+        <div><input class="modal-input" id="regLast" placeholder="Last name"></div>
+      </div>
+      <input class="modal-input" type="email" id="regEmail" placeholder="your@email.com">
+      <input class="modal-input" id="regUsername" placeholder="@username">
+      <input class="modal-input" type="password" id="regPw" placeholder="Password (min 8 chars)">
+      <div class="form-group">
+        <label class="form-label">Country</label>
+        <select class="modal-input" id="regCountry" style="appearance:auto">
+          <option value="">Select country...</option>
+          <option>🇩🇿 Algeria</option><option>🇸🇦 Saudi Arabia</option><option>🇪🇬 Egypt</option><option>🇲🇦 Morocco</option><option>🇹🇳 Tunisia</option><option>🇫🇷 France</option><option>🇩🇪 Germany</option><option>🇬🇧 United Kingdom</option><option>🇺🇸 United States</option><option>🇧🇩 Bangladesh</option><option>Other</option>
+        </select>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">By signing up you agree to our Terms of Service and Privacy Policy.</div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="signUp()"><i class="ti ti-rocket"></i> Create free account</button>
+      <div class="auth-switch">Already have an account? <a onclick="showAuthScreen(&#39;authSignIn&#39;)">Sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- EXPERT PROFILE MODAL -->
+<div class="modal-overlay" id="expertProfileModal" onclick="closeModal(&#39;expertProfileModal&#39;,event)">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;expertProfileModal&#39;)"><i class="ti ti-x"></i></button>
+    <div style="display:flex;gap:20px;align-items:start;margin-bottom:20px">
+      <div id="epAvatar" style="width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;flex-shrink:0"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+          <div id="epName" style="font-family:var(--fontDisplay);font-size:22px;font-weight:700;color:var(--text)"></div>
+          <span class="profile-badge badge-expert"><i class="ti ti-award" style="font-size:10px"></i> Expert</span>
+        </div>
+        <div id="epRole" style="font-size:14px;color:var(--accent2);margin-bottom:4px"></div>
+        <div id="epCountry" style="font-size:13px;color:var(--text3)"></div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        <button class="btn btn-primary"><i class="ti ti-message-2"></i> Message</button>
+        <button class="btn btn-secondary"><i class="ti ti-user-plus"></i> Follow</button>
+      </div>
+    </div>
+    <div id="epBio" style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:16px;padding:14px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)"></div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Skills</div>
+      <div class="skills-wrap" id="epSkills"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+      <div class="stat-card" style="text-align:center"><div class="stat-label">Posts</div><div class="stat-value" style="font-size:18px">42</div></div>
+      <div class="stat-card" style="text-align:center"><div class="stat-label">Followers</div><div class="stat-value" style="font-size:18px">1.2K</div></div>
+      <div class="stat-card" style="text-align:center"><div class="stat-label">Rating</div><div class="stat-value" style="font-size:18px;color:var(--amber)">4.9 ⭐</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- POST MODAL -->
+<div class="modal-overlay" id="postModal" onclick="closeModal(&#39;postModal&#39;,event)">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;postModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>New Post</h2><p>Share knowledge with the community.</p>
+    <input class="modal-input" placeholder="Post title...">
+    <select class="modal-input" style="appearance:auto"><option>Showcase</option><option>Tutorial</option><option>Question</option><option>Discussion</option></select>
+    <textarea class="modal-input" rows="5" placeholder="What&#39;s on your mind? Markdown supported..." style="resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><span class="tag" style="cursor:pointer">+ Flutter</span><span class="tag" style="cursor:pointer">+ React</span><span class="tag" style="cursor:pointer">+ Add tag</span></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;postModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="addPost()"><i class="ti ti-send"></i> Publish</button></div>
+  </div>
+</div>
+
+<!-- EXPERT APPLY MODAL -->
+<div class="modal-overlay" id="expertModal" onclick="closeModal(&#39;expertModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;expertModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Become an Expert</h2><p>Verified experts get a badge and appear in the Experts tab, boosting visibility.</p>
+    <div class="form-group"><label class="form-label">Primary specialty</label><select class="modal-input" style="appearance:auto"><option>Flutter Developer</option><option>React Developer</option><option>Backend Engineer</option><option>DevOps / SRE</option><option>AI/ML Engineer</option></select></div>
+    <div class="form-group"><label class="form-label">Years of experience</label><input class="modal-input" type="number" placeholder="e.g. 5" min="0"></div>
+    <div class="form-group"><label class="form-label">Portfolio or LinkedIn URL</label><input class="modal-input" placeholder="https://..."></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;expertModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;expertModal&#39;);alert(&#39;Application submitted! We&#39;ll review and get back to you within 48 hours.&#39;)"><i class="ti ti-award"></i> Apply</button></div>
+  </div>
+</div>
+
+<!-- COMPANY MODAL -->
+<div class="modal-overlay" id="companyModal" onclick="closeModal(&#39;companyModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;companyModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Add Company</h2><p>Create a company page in this World to post jobs, products, and content.</p>
+    <input class="modal-input" placeholder="Company name">
+    <input class="modal-input" placeholder="Industry (e.g. Software Development)">
+    <input class="modal-input" placeholder="Location">
+    <input class="modal-input" placeholder="Website URL">
+    <textarea class="modal-input" rows="3" placeholder="Company description..." style="resize:vertical"></textarea>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;companyModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;companyModal&#39;)"><i class="ti ti-building"></i> Create Company</button></div>
+  </div>
+</div>
+
+<!-- JOIN MODAL -->
+<div class="modal-overlay" id="joinModal" onclick="closeModal(&#39;joinModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;joinModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Join this World</h2><p>You're joining <strong id="joinWorldName">World of Programming</strong>.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px"><input type="radio" name="joinPlan" value="free" checked=""> Free — Browse and comment</label>
+      <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--accentBorder);border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px;background:var(--accentBg)"><input type="radio" name="joinPlan" value="pro"> Pro ($12/mo) — Full access + sell</label>
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;joinModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;joinModal&#39;)"><i class="ti ti-check"></i> Join World</button></div>
+  </div>
+</div>
+
+<!-- CREATE WORLD MODAL -->
+<div class="modal-overlay" id="createModal" onclick="closeModal(&#39;createModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;createModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Create a World</h2><p>Build a specialized community for your field.</p>
+    <input class="modal-input" placeholder="World name (e.g. Blockchain, UX Writing...)">
+    <input class="modal-input" placeholder="Short description">
+    <select class="modal-input" style="appearance:auto"><option>Tech</option><option>Health</option><option>Business</option><option>Arts</option><option>Science</option><option>Education</option></select>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;createModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;createModal&#39;)"><i class="ti ti-rocket"></i> Create World</button></div>
+  </div>
+</div>
+
+<!-- SELL MODAL -->
+<div class="modal-overlay" id="sellModal" onclick="closeModal(&#39;sellModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;sellModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>List a Product</h2>
+    <input class="modal-input" placeholder="Product name">
+    <textarea class="modal-input" rows="3" placeholder="Description" style="resize:vertical"></textarea>
+    <input class="modal-input" placeholder="Price (e.g. $29, Free, $9/mo)">
+    <select class="modal-input" style="appearance:auto"><option>Template</option><option>Plugin</option><option>App</option><option>Course</option><option>Code</option></select>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;sellModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;sellModal&#39;)"><i class="ti ti-shopping-bag"></i> List Product</button></div>
+  </div>
+</div>
+
+<!-- JOB MODAL -->
+<div class="modal-overlay" id="jobModal" onclick="closeModal(&#39;jobModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;jobModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Post a Job</h2>
+    <input class="modal-input" placeholder="Job title">
+    <input class="modal-input" placeholder="Company name">
+    <input class="modal-input" placeholder="Salary range (e.g. $80K–$120K)">
+    <input class="modal-input" placeholder="Location (or Remote)">
+    <textarea class="modal-input" rows="3" placeholder="Job description" style="resize:vertical"></textarea>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;jobModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;jobModal&#39;)"><i class="ti ti-briefcase"></i> Post Job</button></div>
+  </div>
+</div>
+
+<!-- EVENT MODAL -->
+<div class="modal-overlay" id="eventModal" onclick="closeModal(&#39;eventModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;eventModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Create Event</h2>
+    <input class="modal-input" placeholder="Event title">
+    <input class="modal-input" type="date">
+    <textarea class="modal-input" rows="2" placeholder="Description" style="resize:vertical"></textarea>
+    <select class="modal-input" style="appearance:auto"><option>Online</option><option>In Person</option><option>Hybrid</option></select>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;eventModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;eventModal&#39;)"><i class="ti ti-calendar"></i> Create Event</button></div>
+  </div>
+</div>
+
+<!-- VOICE MODAL -->
+<div class="modal-overlay" id="voiceModal" onclick="closeModal(&#39;voiceModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;voiceModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Create Voice Room</h2>
+    <input class="modal-input" placeholder="Room title (e.g. Flutter AMA)">
+    <textarea class="modal-input" rows="2" placeholder="Description" style="resize:vertical"></textarea>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;voiceModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="closeModal(&#39;voiceModal&#39;)"><i class="ti ti-microphone"></i> Start Room</button></div>
+  </div>
+</div>
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="upgradeModal" onclick="closeModal(&#39;upgradeModal&#39;,event)">
+  <div class="modal" style="text-align:center" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;upgradeModal&#39;)"><i class="ti ti-x"></i></button>
+    <div style="font-size:40px;margin-bottom:12px">👑</div>
+    <h2>Upgrade to Pro</h2>
+    <p>Unlock unlimited posting, marketplace selling, expert profile, and analytics.</p>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;text-align:left"><div style="font-size:28px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);margin-bottom:4px">$12<span style="font-size:14px;color:var(--text3);font-weight:400">/month</span></div><div style="font-size:13px;color:var(--text3)">Cancel anytime · Instant access · Per world</div></div>
+    <div class="modal-actions" style="justify-content:center"><button class="btn btn-secondary" onclick="closeModal(&#39;upgradeModal&#39;)">Maybe later</button><button class="btn btn-primary" style="padding:10px 28px" onclick="closeModal(&#39;upgradeModal&#39;)"><i class="ti ti-crown"></i> Upgrade Now</button></div>
+  </div>
+</div>
+
+<!-- NOTIF MODAL -->
+<div class="modal-overlay" id="notifModal" onclick="closeModal(&#39;notifModal&#39;,event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;notifModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Notifications</h2>
+    <div style="display:flex;flex-direction:column;gap:2px;margin-top:8px">
+      <div style="padding:12px;border-radius:8px;background:var(--accentBg);border:1px solid var(--accentBorder);margin-bottom:6px"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Sara Rahman liked your post</div><div style="font-size:12px;color:var(--text3)">2 minutes ago</div></div>
+      <div style="padding:12px;border-radius:8px;background:var(--accentBg);border:1px solid var(--accentBorder);margin-bottom:6px"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">New job match: Senior Flutter Developer</div><div style="font-size:12px;color:var(--text3)">1 hour ago</div></div>
+      <div style="padding:12px;border-radius:8px;background:var(--accentBg);border:1px solid var(--accentBorder)"><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">Flutter World Summit — 3 days away</div><div style="font-size:12px;color:var(--text3)">5 hours ago</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LANG MODAL -->
+<div class="modal-overlay" id="langModal">
+  <div class="modal" style="text-align:center"><h2>Language changed</h2><p id="langModalText">The interface will reload in English.</p><div class="modal-actions" style="justify-content:center"><button class="btn btn-primary" onclick="closeLangModal()">Apply</button><button class="btn btn-secondary" onclick="closeLangModal()">Cancel</button></div></div>
+</div>
+
+<!-- EDIT PROFILE MODAL -->
+<div class="modal-overlay" id="editProfileModal" onclick="closeModal(&#39;editProfileModal&#39;,event)">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal(&#39;editProfileModal&#39;)"><i class="ti ti-x"></i></button>
+    <h2>Edit Profile</h2>
+    <div class="form-row"><div><label class="form-label">Name</label><input class="modal-input" id="epName2" placeholder="Your name"></div><div><label class="form-label">Headline</label><input class="modal-input" id="epHeadline2" placeholder="Flutter Developer · 5 yrs exp"></div></div>
+    <div class="form-group"><label class="form-label">Bio</label><textarea class="modal-input" id="epBio2" rows="3" style="resize:vertical" placeholder="Tell the community about yourself..."></textarea></div>
+    <div class="form-row"><div><label class="form-label">Country</label><input class="modal-input" id="epCountry2" placeholder="Algeria"></div><div><label class="form-label">Languages</label><input class="modal-input" id="epLangs2" placeholder="Arabic, English, French"></div></div>
+    <div class="form-group"><label class="form-label">Skills (comma-separated)</label><input class="modal-input" id="epSkillsEdit" placeholder="Flutter, Dart, Firebase"></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(&#39;editProfileModal&#39;)">Cancel</button><button class="btn btn-primary" onclick="saveQuickProfile()"><i class="ti ti-check"></i> Save</button></div>
+  </div>
+</div>
+
+<script>
+// ===================== STATE =====================
+let currentUser = null;
+let currentWorld = null;
+
+const worlds = {
+  dev:{icon:'💻',title:'World of Programming',members:'48.3K',online:'1.2K',posts:'2.8K'},
+  ai:{icon:'🤖',title:'World of AI & ML',members:'32.1K',online:'987',posts:'1.9K'},
+  design:{icon:'🎨',title:'World of Design',members:'27.8K',online:'742',posts:'1.4K'},
+  biz:{icon:'💼',title:'World of Entrepreneurship',members:'41.2K',online:'1.1K',posts:'2.2K'},
+  med:{icon:'🩺',title:'World of Medicine',members:'19.4K',online:'520',posts:'980'},
+  edu:{icon:'🎓',title:'World of Education',members:'35.7K',online:'890',posts:'1.7K'},
+  photo:{icon:'📷',title:'World of Photography',members:'22.3K',online:'610',posts:'1.1K'},
+  game:{icon:'🎮',title:'World of Gaming',members:'58.9K',online:'2.3K',posts:'3.4K'},
+  finance:{icon:'📈',title:'World of Finance',members:'29.6K',online:'740',posts:'1.3K'},
+};
+
+// ===================== AUTH =====================
+function signIn() {
+  const email = document.getElementById('signInEmail').value.trim();
+  const pw = document.getElementById('signInPw').value;
+  if (!email || !pw) { alert('Please enter email and password.'); return; }
+  const stored = JSON.parse(localStorage.getItem('wh_users') || '[]');
+  const user = stored.find(u => u.email === email);
+  if (!user) { alert('Account not found. Please sign up first.'); return; }
+  if (user.password !== pw) { alert('Incorrect password.'); return; }
+  loginUser(user);
+}
+
+function signUp() {
+  const first = document.getElementById('regFirst').value.trim();
+  const last = document.getElementById('regLast').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const username = document.getElementById('regUsername').value.trim();
+  const pw = document.getElementById('regPw').value;
+  const country = document.getElementById('regCountry').value;
+  if (!first || !email || !pw) { alert('Please fill in required fields.'); return; }
+  if (pw.length < 8) { alert('Password must be at least 8 characters.'); return; }
+  const stored = JSON.parse(localStorage.getItem('wh_users') || '[]');
+  if (stored.find(u => u.email === email)) { alert('Email already registered.'); return; }
+  const user = {id: Date.now().toString(), name: first + (last ? ' '+last : ''), email, username: username || email.split('@')[0], password: pw, country: country || '', bio: '', headline: '', skills: [], languages: [], isExpert: false, expertRole: '', yearsExp: 0, createdAt: new Date().toISOString()};
+  stored.push(user);
+  localStorage.setItem('wh_users', JSON.stringify(stored));
+  loginUser(user);
+}
+
+function socialSignIn(provider) {
+  const user = {id: 'social_'+Date.now(), name: provider === 'Google' ? 'Google User' : 'GitHub User', email: provider.toLowerCase()+'@example.com', username: provider.toLowerCase()+'user', country: '', bio: '', headline: '', skills: [], languages: [], isExpert: false, expertRole: '', yearsExp: 0, createdAt: new Date().toISOString()};
+  loginUser(user);
+}
+
+function loginUser(user) {
+  currentUser = user;
+  localStorage.setItem('wh_session', JSON.stringify(user));
+  document.getElementById('topbarAuth').style.display = 'none';
+  document.getElementById('topbarAvatar').style.display = 'block';
+  const initials = user.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('avatarInitials').textContent = initials;
+  document.getElementById('profileAvatarLg').textContent = initials;
+  document.getElementById('profileName').textContent = user.name;
+  document.getElementById('profileHeadline').textContent = user.headline || 'Add a headline in settings...';
+  document.getElementById('profileBio').textContent = user.bio || 'No bio yet. Tell the community about yourself.';
+  if (user.country) document.getElementById('profileCountry').querySelector('span').textContent = user.country;
+  if (user.languages && user.languages.length) document.getElementById('profileLangs').querySelector('span').textContent = user.languages.join(', ');
+  if (user.skills && user.skills.length) renderProfileSkills(user.skills);
+  if (user.isExpert) document.getElementById('expertBadge').style.display = 'inline-flex';
+  document.getElementById('settingsEmail').value = user.email || '';
+  document.getElementById('settingsUsername').value = user.username || '';
+  closeModal('authModal');
+}
+
+function logout() { currentUser=null; localStorage.removeItem('wh_session'); location.reload(); }
+
+function requireAuth(fn) {
+  if (currentUser) { fn(); }
+  else { showModal('authModal'); }
+}
+
+// ===================== NAVIGATION =====================
+function showLanding() {
+  hideAll();
+  document.getElementById('landing').style.display = 'flex';
+  document.querySelectorAll('.world-item').forEach(el=>el.classList.remove('active'));
+  currentWorld = null;
+}
+
+function openWorld(id) {
+  currentWorld = id;
+  const w = worlds[id];
+  hideAll();
+  document.getElementById('worldView').style.display = 'block';
+  document.getElementById('worldIcon').textContent = w.icon;
+  document.getElementById('worldTitle').textContent = w.title;
+  document.getElementById('worldMembers').textContent = w.members;
+  document.getElementById('worldOnline').textContent = w.online;
+  document.getElementById('worldPosts').textContent = w.posts;
+  document.getElementById('s-members').textContent = w.members;
+  document.getElementById('s-online').textContent = w.online;
+  document.getElementById('joinWorldName').textContent = w.title;
+  document.querySelectorAll('.world-item').forEach(el=>el.classList.remove('active'));
+  const nav = document.getElementById('nav-'+id);
+  if (nav) nav.classList.add('active');
+  switchTab('home');
+  document.getElementById('contentArea').scrollTop = 0;
+}
+
+function hideAll() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('worldView').style.display = 'none';
+  document.getElementById('profilePage').style.display = 'none';
+  document.getElementById('settingsPage').style.display = 'none';
+  document.getElementById('databasePage').style.display = 'none';
+}
+
+function showPage(page) {
+  if ((page === 'profile' || page === 'settings') && !currentUser) { showModal('authModal'); return; }
+  hideAll();
+  document.getElementById(page+'Page').style.display = 'block';
+  document.querySelectorAll('.world-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('contentArea').scrollTop = 0;
+}
+
+function selectWorld(id) { openWorld(id); document.getElementById('searchOverlay').classList.remove('open'); }
+
+// ===================== TABS =====================
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const panel = document.getElementById('tab-'+name);
+  if (panel) panel.classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'"+name+"'")) b.classList.add('active');
+  });
+}
+
+// ===================== MODALS =====================
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id,e) { if(!e||e.target===document.getElementById(id)) document.getElementById(id).classList.remove('open'); }
+
+// ===================== SETTINGS =====================
+function switchSettings(el,section) {
+  document.querySelectorAll('.settings-nav-item').forEach(i=>i.classList.remove('active'));
+  el.classList.add('active');
+  ['accountSettings','profileSettings','privacySettings','notifSettings','dangerSettings'].forEach(s=>{
+    const el2 = document.getElementById(s);
+    if(el2) el2.style.display = (s===section)?'block':'none';
+  });
+}
+
+function saveAccountSettings() {
+  if (!currentUser) return;
+  currentUser.email = document.getElementById('settingsEmail').value;
+  currentUser.username = document.getElementById('settingsUsername').value;
+  persistUser();
+  alert('Account settings saved.');
+}
+
+function saveProfileSettings() {
+  if (!currentUser) return;
+  currentUser.name = document.getElementById('settingsName').value || currentUser.name;
+  currentUser.headline = document.getElementById('settingsHeadline').value;
+  currentUser.bio = document.getElementById('settingsBio').value;
+  currentUser.country = document.getElementById('settingsCountry').value;
+  currentUser.languages = document.getElementById('settingsLangs').value.split(',').map(s=>s.trim()).filter(Boolean);
+  currentUser.skills = document.getElementById('settingsSkills').value.split(',').map(s=>s.trim()).filter(Boolean);
+  persistUser();
+  refreshProfileDisplay();
+  alert('Profile saved successfully!');
+}
+
+function applyExpert() {
+  if (!currentUser) return;
+  const role = document.getElementById('settingsExpertRole').value;
+  const years = document.getElementById('settingsYears').value;
+  if (!role) { alert('Please select a specialty.'); return; }
+  currentUser.isExpert = true;
+  currentUser.expertRole = role;
+  currentUser.yearsExp = parseInt(years)||0;
+  persistUser();
+  document.getElementById('expertBadge').style.display = 'inline-flex';
+  alert('Expert status applied! It will be reviewed within 48 hours.');
+}
+
+function saveQuickProfile() {
+  if (!currentUser) return;
+  currentUser.name = document.getElementById('epName2').value || currentUser.name;
+  currentUser.headline = document.getElementById('epHeadline2').value;
+  currentUser.bio = document.getElementById('epBio2').value;
+  currentUser.country = document.getElementById('epCountry2').value;
+  currentUser.languages = document.getElementById('epLangs2').value.split(',').map(s=>s.trim()).filter(Boolean);
+  currentUser.skills = document.getElementById('epSkillsEdit').value.split(',').map(s=>s.trim()).filter(Boolean);
+  persistUser();
+  refreshProfileDisplay();
+  closeModal('editProfileModal');
+}
+
+function persistUser() {
+  localStorage.setItem('wh_session', JSON.stringify(currentUser));
+  const users = JSON.parse(localStorage.getItem('wh_users')||'[]');
+  const idx = users.findIndex(u=>u.id===currentUser.id);
+  if(idx>-1) users[idx]=currentUser; else users.push(currentUser);
+  localStorage.setItem('wh_users', JSON.stringify(users));
+}
+
+function refreshProfileDisplay() {
+  if (!currentUser) return;
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('avatarInitials').textContent = initials;
+  document.getElementById('profileAvatarLg').textContent = initials;
+  document.getElementById('profileName').textContent = currentUser.name;
+  document.getElementById('profileHeadline').textContent = currentUser.headline || 'Add a headline in settings...';
+  document.getElementById('profileBio').textContent = currentUser.bio || 'No bio yet.';
+  document.getElementById('profileCountry').querySelector('span').textContent = currentUser.country || 'Not set';
+  document.getElementById('profileLangs').querySelector('span').textContent = currentUser.languages&&currentUser.languages.length ? currentUser.languages.join(', ') : 'Not set';
+  renderProfileSkills(currentUser.skills||[]);
+}
+
+function renderProfileSkills(skills) {
+  const wrap = document.getElementById('profileSkills');
+  if(!skills||!skills.length){wrap.innerHTML='<span style="font-size:13px;color:var(--text3)">Add skills in settings</span>';return;}
+  wrap.innerHTML = skills.map(s=>`<span class="skill-chip">${s}</span>`).join('');
+}
+
+// ===================== EXPERT PROFILE =====================
+function openExpertProfile(ep) {
+  document.getElementById('epAvatar').style.background = ep.color;
+  document.getElementById('epAvatar').textContent = ep.initials;
+  document.getElementById('epName').textContent = ep.name;
+  document.getElementById('epRole').textContent = ep.role;
+  document.getElementById('epCountry').textContent = ep.country;
+  document.getElementById('epBio').textContent = ep.bio;
+  document.getElementById('epSkills').innerHTML = ep.skills.map(s=>`<span class="skill-chip">${s}</span>`).join('');
+  showModal('expertProfileModal');
+}
+
+// ===================== CHAT =====================
+function setChannel(el,name) {
+  el.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('chatInput').placeholder = 'Message '+name+'...';
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+  if(!currentUser){showModal('authModal');return;}
+  const msgs = document.getElementById('chatMessages');
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<div class="chat-msg-avatar" style="background:linear-gradient(135deg,var(--accent),#a855f7);color:#fff">${initials}</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">${currentUser.name}</span><span class="chat-msg-time">Now</span></div><div class="chat-msg-text">${msg}</div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  input.value = '';
+}
+
+function addPost() {
+  closeModal('postModal');
+  if(!currentUser) return;
+  const container = document.getElementById('postsContainer');
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const card = document.createElement('div');
+  card.className = 'post-card';
+  card.style.borderColor = 'var(--accentBorder)';
+  card.innerHTML = `<div class="post-header"><div class="post-avatar" style="background:linear-gradient(135deg,var(--accent),#a855f7);color:#fff">${initials}</div><div class="post-meta"><div class="post-author">${currentUser.name}</div><div class="post-time">Just now</div></div><div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">New</div></div><div class="post-title">My new post</div><div class="post-body">Post published successfully!</div><div class="post-footer"><div class="post-action"><i class="ti ti-heart"></i> 0</div><div class="post-action"><i class="ti ti-message-2"></i> 0</div></div>`;
+  container.insertBefore(card,container.firstChild);
+  switchTab('posts');
+}
+
+// ===================== REAL CLAUDE AI =====================
+async function askAI(preset) {
+  const input = document.getElementById('aiInput');
+  const question = preset || input.value.trim();
+  if (!question) return;
+  input.value = '';
+
+  const msgs = document.getElementById('aiMessages');
+  const worldName = currentWorld ? worlds[currentWorld]?.title || 'this World' : 'WorldHub';
+
+  const userDiv = document.createElement('div');
+  userDiv.className = 'ai-msg ai-msg-user';
+  userDiv.innerHTML = `<div class="ai-bubble ai-bubble-user">${question}</div>`;
+  msgs.appendChild(userDiv);
+
+  const typingDiv = document.createElement('div');
+  typingDiv.className = 'ai-msg';
+  typingDiv.innerHTML = `<div class="ai-bubble ai-bubble-bot"><div class="typing"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  msgs.appendChild(typingDiv);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  document.getElementById('aiStatus').textContent = 'Thinking...';
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: `You are the AI assistant for WorldHub, a professional community platform. The user is currently in "${worldName}". You help members find posts, summarize discussions, give career advice, recommend resources, and answer questions relevant to this professional community. Be concise, helpful, and specific. Keep responses under 150 words unless a detailed answer is truly needed.`,
+        messages: [{role: 'user', content: question}]
+      })
+    });
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'Sorry, I could not get a response. Please try again.';
+    typingDiv.innerHTML = `<div class="ai-bubble ai-bubble-bot" style="white-space:pre-line">${reply}</div>`;
+  } catch(err) {
+    typingDiv.innerHTML = `<div class="ai-bubble ai-bubble-bot">I'm having trouble connecting right now. Please try again in a moment.</div>`;
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  document.getElementById('aiStatus').textContent = 'Powered by Claude';
+}
+
+// ===================== SEARCH =====================
+function openSearch() { document.getElementById('searchOverlay').classList.add('open'); setTimeout(()=>document.getElementById('liveSearch').focus(),50); }
+function closeSearchOverlay(e) { if(e.target===document.getElementById('searchOverlay')) document.getElementById('searchOverlay').classList.remove('open'); }
+function doSearch(val) {}
+
+// ===================== LANG =====================
+function toggleLang() { document.getElementById('langDropdown').classList.toggle('open'); }
+function setLang(code,name) {
+  document.getElementById('langLabel').textContent = code;
+  document.getElementById('langDropdown').classList.remove('open');
+  document.getElementById('langModalText').textContent = `The interface language will be set to ${name}.`;
+  document.getElementById('langModal').classList.add('open');
+}
+function closeLangModal() { document.getElementById('langModal').classList.remove('open'); }
+
+// ===================== AUTH SCREENS =====================
+function showAuthScreen(id) {
+  document.querySelectorAll('#authModal > .modal > div[id^="auth"]').forEach(el=>el.style.display='none');
+  document.getElementById(id).style.display='block';
+}
+
+// ===================== GLOBAL KEYS =====================
+document.addEventListener('click', e => {
+  const dropdown = document.getElementById('langDropdown');
+  const btn = document.getElementById('langBtn');
+  if(btn && !btn.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.remove('open');
+});
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') {
+    document.getElementById('searchOverlay').classList.remove('open');
+    document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));
+    document.getElementById('langDropdown').classList.remove('open');
+  }
+});
+
+// ===================== INIT =====================
+(function init() {
+  const session = localStorage.getItem('wh_session');
+  if (session) { try { loginUser(JSON.parse(session)); } catch(e) {} }
+  openWorld('dev');
+})();
+</script>
+
+
+</body></html>

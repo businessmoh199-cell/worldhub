@@ -1,0 +1,74 @@
+<!-- ===================== pages/home.html ===================== -->
+<!-- TAB: HOME — Stats grid + trending posts + sidebar widgets -->
+
+<div class="stats-grid">
+  <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="s-members">48.3K</div><div class="stat-sub">+124 today</div></div>
+  <div class="stat-card"><div class="stat-label">Posts Today</div><div class="stat-value">342</div><div class="stat-sub">+18% vs avg</div></div>
+  <div class="stat-card"><div class="stat-label">Online Now</div><div class="stat-value">1.2K</div><div class="stat-sub">Active right now</div></div>
+  <div class="stat-card"><div class="stat-label">Open Jobs</div><div class="stat-value">87</div><div class="stat-sub">12 new this week</div></div>
+</div>
+
+<div style="display:flex;gap:20px">
+  <div style="flex:1;min-width:0">
+    <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab('posts')">See all</div></div>
+    <div class="post-card" onclick="">
+      <div class="post-header">
+        <div class="post-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div>
+        <div class="post-meta"><div class="post-author">Sara Rahman</div><div class="post-time">2 hours ago</div></div>
+        <div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">Flutter</div>
+      </div>
+      <div class="post-title">Built a full offline-first app with Flutter + Hive — here's my architecture</div>
+      <div class="post-body">After 3 months of struggling with sync conflicts, I finally cracked the pattern. Sharing the complete source with state management...</div>
+      <div class="post-tags"><span class="tag">Flutter</span><span class="tag">Hive</span><span class="tag">Architecture</span><span class="tag">Offline-first</span></div>
+      <div class="post-footer">
+        <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 284</div>
+        <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 47</div>
+        <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i> Share</div>
+        <div class="post-action"><i class="ti ti-bookmark" aria-hidden="true"></i> Save</div>
+      </div>
+    </div>
+    <div class="post-card">
+      <div class="post-header">
+        <div class="post-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div>
+        <div class="post-meta"><div class="post-author">Mokhtar K.</div><div class="post-time">5 hours ago</div></div>
+        <div class="post-badge" style="background:var(--greenBg);color:var(--green);border-color:rgba(34,197,94,0.3)">Rust</div>
+      </div>
+      <div class="post-title">Why I rewrote my Python backend in Rust — 40x performance gain</div>
+      <div class="post-body">Benchmark results attached. The memory footprint dropped from 800MB to 22MB with identical throughput under load testing...</div>
+      <div class="post-footer">
+        <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 512</div>
+        <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 93</div>
+        <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i> Share</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="width:240px;flex-shrink:0">
+    <div class="section-header"><div class="section-title">Top Companies</div></div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px">🚀</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">NovaDev Inc.</div><div style="font-size:11px;color:var(--text3)">14 open positions</div></div>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px">⚡</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">ByteForge</div><div style="font-size:11px;color:var(--text3)">8 open positions</div></div>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+        <div style="font-size:22px">🧠</div>
+        <div><div style="font-size:13px;font-weight:600;color:var(--text)">Synaptic AI</div><div style="font-size:11px;color:var(--text3)">22 open positions</div></div>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+      </div>
+    </div>
+    <div style="margin-top:16px">
+      <div class="section-header"><div class="section-title">Upcoming Events</div></div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em">JUL 12</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin:4px 0 2px">Flutter World Summit</div>
+        <div style="font-size:12px;color:var(--text3)">Online · 2K attending</div>
+      </div>
+    </div>
+  </div>
+</div>

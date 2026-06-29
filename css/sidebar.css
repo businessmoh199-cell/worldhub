@@ -1,0 +1,40 @@
+/* ===================== SIDEBAR.CSS ===================== */
+
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.sidebar-section { padding: 12px 12px 4px; }
+.sidebar-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text3); padding: 0 8px; margin-bottom: 6px;
+}
+.world-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--radius-sm);
+  cursor: pointer; transition: all 0.15s; color: var(--text2);
+  font-size: 14px; border: 1px solid transparent;
+  position: relative;
+}
+.world-item:hover { background: var(--bg3); color: var(--text); }
+.world-item.active {
+  background: var(--accentBg); color: var(--accent2);
+  border-color: var(--accentBorder);
+}
+.world-emoji { font-size: 18px; width: 28px; text-align: center; }
+.world-name { flex: 1; font-weight: 500; }
+.world-badge {
+  font-size: 10px; font-weight: 600; background: var(--accent);
+  color: #fff; border-radius: 10px; padding: 1px 6px; min-width: 18px;
+  text-align: center;
+}
+.sidebar-divider { height: 1px; background: var(--border); margin: 8px 12px; }
