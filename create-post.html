@@ -585,22 +585,23 @@ async function submitForm(e, type) {
  const {
   data: { session }
 } = await window.sb.auth.getSession();
-  if (!session) {
-    showToast("يجب تسجيل الدخول أولاً");
-    return false;
-  }
 
- const { error } = await window.sb
+if (!session) {
+  showToast("يجب تسجيل الدخول أولاً");
+  return false;
+}
+
+const { error } = await window.sb
   .from("posts")
-    .insert([
-      {
-        user_id: session.user.id,
-        content: content,
-        image_url: null,
-        likes_count: 0,
-        comments_count: 0
-      }
-    ]);
+  .insert([
+    {
+      user_id: session.user.id,
+      content: content,
+      image_url: null,
+      likes_count: 0,
+      comments_count: 0
+    }
+  ]);
 
   if (error) {
     console.error(error);
