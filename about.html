@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About Us — WorldHub</title>
+<meta name="description" content="Learn about WorldHub's mission to connect professionals through specialized communities.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<style>
+html, body { overflow-y: auto; height: auto; }
+.page-wrap { max-width: 760px; margin: 0 auto; padding: 50px 20px 70px; }
+.back-link { display:inline-flex; align-items:center; gap:6px; color: var(--text2); text-decoration:none; font-size:13px; margin-bottom:28px; }
+.page-wrap h1 { font-family: var(--fontDisplay); font-size: 34px; color: var(--text); margin-bottom: 14px; letter-spacing:-0.5px; }
+.page-wrap h2 { font-family: var(--fontDisplay); font-size: 19px; color: var(--text); margin: 28px 0 10px; }
+.page-wrap p { color: var(--text2); font-size: 15px; line-height: 1.75; margin-bottom: 14px; }
+.values-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:14px; margin-top:18px; }
+.value-card { background: var(--bg2); border:1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+.value-card i { font-size: 24px; color: var(--accent2); margin-bottom: 8px; display:block; }
+.value-card h3 { font-size: 14px; color: var(--text); margin-bottom: 6px; }
+.value-card p { font-size: 12.5px; color: var(--text3); margin: 0; }
+@media (max-width:600px){ .values-grid{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="logo" onclick="location.href='index.html'" style="cursor:pointer">WorldHub<span>β</span></div></div>
+<div class="page-wrap">
+  <a class="back-link" href="index.html"><i class="ti ti-arrow-left"></i> Back to WorldHub</a>
+  <h1>About WorldHub</h1>
+  <p>WorldHub is a professional social network built around <strong>specialized communities</strong> rather than a single, undifferentiated feed. Every "World" — Programming, Medicine, Design, Entrepreneurship and more — has its own posts, marketplace, jobs board, voice rooms and AI assistant tuned to that field.</p>
+  <p>We started WorldHub because general-purpose social networks dilute professional conversation with noise. By organizing the platform around fields of interest, members find higher-signal discussions, more relevant job opportunities, and a marketplace of tools actually built for their craft.</p>
+
+  <h2>Our Mission</h2>
+  <p>To give every profession and passion its own thriving, focused corner of the internet — with the tools members actually need: content, commerce, hiring, and real-time collaboration, all in one place.</p>
+
+  <h2>What we value</h2>
+  <div class="values-grid">
+    <div class="value-card"><i class="ti ti-target"></i><h3>Relevance</h3><p>Communities organized by field, not algorithm-chasing engagement.</p></div>
+    <div class="value-card"><i class="ti ti-shield-check"></i><h3>Trust & Safety</h3><p>Verification and reporting tools to keep communities credible.</p></div>
+    <div class="value-card"><i class="ti ti-bulb"></i><h3>Craft</h3><p>Tools built for the specific needs of each profession.</p></div>
+  </div>
+
+  <h2>The team</h2>
+  <p>WorldHub is built by a small, distributed team of engineers, designers and community builders who believe the future of professional networking is specialized, not generic.</p>
+</div>
+<script src="js/theme.js"></script>
+</body>
+</html>

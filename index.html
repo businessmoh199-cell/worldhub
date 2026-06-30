@@ -3,7 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WorldHub — Connect by Passion</title>
+<title>WorldHub — Connect by Passion | Professional Communities Network</title>
+<meta name="description" content="WorldHub is a social platform connecting professionals by passion: programming, design, medicine, business and more. Posts, marketplace, jobs, voice rooms, reels and AI assistant in every world.">
+<meta name="keywords" content="WorldHub, professional network, communities, marketplace, jobs, programming, AI, social network">
+<meta name="author" content="WorldHub">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://worldhub.app/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="WorldHub — Connect by Passion">
+<meta property="og:description" content="Specialized communities built for your profession. Posts, marketplace, jobs, voice rooms — everything your field needs.">
+<meta property="og:image" content="https://worldhub.app/assets/og-cover.jpg">
+<meta property="og:url" content="https://worldhub.app/">
+<meta property="og:site_name" content="WorldHub">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WorldHub — Connect by Passion">
+<meta name="twitter:description" content="Specialized communities built for your profession.">
+<meta name="twitter:image" content="https://worldhub.app/assets/og-cover.jpg">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -19,7 +42,7 @@
   <div class="logo" onclick="showLanding()" style="cursor:pointer">WorldHub<span>β</span></div>
   <div class="topbar-search">
     <i class="ti ti-search si"></i>
-    <input type="text" placeholder="Search people, posts, code..." id="searchInput" onclick="openSearch()" readonly>
+    <input type="text" placeholder="Search people, posts, code..." id="searchInput" onclick="openSearch()" readonly data-i18n-ph="search_ph">
   </div>
   <div class="topbar-actions" style="position:relative">
     <div class="lang-btn" onclick="toggleLang()" id="langBtn">
@@ -28,15 +51,14 @@
       <i class="ti ti-chevron-down" aria-hidden="true" style="font-size:12px"></i>
     </div>
     <div class="lang-dropdown" id="langDropdown">
-      <div class="lang-option active" onclick="setLang('EN','🇺🇸 English')"><span>🇺🇸</span> English</div>
-      <div class="lang-option" onclick="setLang('AR','🇸🇦 العربية')"><span>🇸🇦</span> العربية</div>
-      <div class="lang-option" onclick="setLang('FR','🇫🇷 Français')"><span>🇫🇷</span> Français</div>
-      <div class="lang-option" onclick="setLang('ES','🇪🇸 Español')"><span>🇪🇸</span> Español</div>
-      <div class="lang-option" onclick="setLang('DE','🇩🇪 Deutsch')"><span>🇩🇪</span> Deutsch</div>
-      <div class="lang-option" onclick="setLang('ZH','🇨🇳 中文')"><span>🇨🇳</span> 中文</div>
+      <div class="lang-option" onclick="setLang('EN','English')"><span>🇺🇸</span> English</div>
+      <div class="lang-option" onclick="setLang('AR','العربية')"><span>🇸🇦</span> العربية</div>
+      <div class="lang-option" onclick="setLang('FR','Français')"><span>🇫🇷</span> Français</div>
+      <div class="lang-option" onclick="setLang('ES','Español')"><span>🇪🇸</span> Español</div>
     </div>
+    <div class="notif-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme"><i class="ti ti-moon" aria-hidden="true" id="themeIcon"></i></div>
     <div class="notif-btn"><i class="ti ti-bell" aria-hidden="true"></i></div>
-    <div class="avatar-btn">YO</div>
+    <div class="avatar-btn" onclick="window.location.href='profile.html'" title="My Profile" style="cursor:pointer">YO</div>
   </div>
 </div>
 
@@ -94,60 +116,64 @@
   <!-- SIDEBAR -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-section">
-      <div class="sidebar-label">My Worlds</div>
+      <div class="sidebar-label" data-i18n="my_worlds">My Worlds</div>
       <div class="world-item active" onclick="openWorld('dev')" id="nav-dev">
         <span class="world-emoji">💻</span>
-        <span class="world-name">Programming</span>
+        <span class="world-name" data-i18n="w_programming">Programming</span>
         <span class="world-badge">12</span>
       </div>
       <div class="world-item" onclick="openWorld('ai')" id="nav-ai">
         <span class="world-emoji">🤖</span>
-        <span class="world-name">AI & ML</span>
+        <span class="world-name" data-i18n="w_ai">AI & ML</span>
       </div>
       <div class="world-item" onclick="openWorld('design')" id="nav-design">
         <span class="world-emoji">🎨</span>
-        <span class="world-name">Design</span>
+        <span class="world-name" data-i18n="w_design">Design</span>
         <span class="world-badge">3</span>
       </div>
       <div class="world-item" onclick="openWorld('biz')" id="nav-biz">
         <span class="world-emoji">💼</span>
-        <span class="world-name">Entrepreneurship</span>
+        <span class="world-name" data-i18n="w_biz">Entrepreneurship</span>
       </div>
     </div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section">
-      <div class="sidebar-label">Discover Worlds</div>
+      <div class="sidebar-label" data-i18n="discover_worlds">Discover Worlds</div>
       <div class="world-item" onclick="openWorld('med')" id="nav-med">
         <span class="world-emoji">🩺</span>
-        <span class="world-name">Medicine</span>
+        <span class="world-name" data-i18n="w_med">Medicine</span>
       </div>
       <div class="world-item" onclick="openWorld('edu')" id="nav-edu">
         <span class="world-emoji">🎓</span>
-        <span class="world-name">Education</span>
+        <span class="world-name" data-i18n="w_edu">Education</span>
       </div>
       <div class="world-item" onclick="openWorld('photo')" id="nav-photo">
         <span class="world-emoji">📷</span>
-        <span class="world-name">Photography</span>
+        <span class="world-name" data-i18n="w_photo">Photography</span>
       </div>
       <div class="world-item" onclick="openWorld('game')" id="nav-game">
         <span class="world-emoji">🎮</span>
-        <span class="world-name">Gaming</span>
+        <span class="world-name" data-i18n="w_game">Gaming</span>
       </div>
       <div class="world-item" onclick="openWorld('finance')" id="nav-finance">
         <span class="world-emoji">📈</span>
-        <span class="world-name">Finance</span>
+        <span class="world-name" data-i18n="w_finance">Finance</span>
       </div>
     </div>
     <div class="sidebar-divider"></div>
     <div class="sidebar-section" style="padding-bottom:16px">
-      <div class="sidebar-label">Quick Actions</div>
+      <div class="sidebar-label" data-i18n="quick_actions">Quick Actions</div>
       <div class="world-item" onclick="showModal('createModal')">
         <span class="world-emoji" style="font-size:16px"><i class="ti ti-plus" style="color:var(--accent2)"></i></span>
-        <span class="world-name">Create World</span>
+        <span class="world-name" data-i18n="create_world">Create World</span>
+      </div>
+      <div class="world-item" onclick="window.location.href='profile.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-user" style="color:var(--text3)"></i></span>
+        <span class="world-name" data-i18n="my_profile">My Profile</span>
       </div>
       <div class="world-item">
         <span class="world-emoji" style="font-size:16px"><i class="ti ti-settings" style="color:var(--text3)"></i></span>
-        <span class="world-name">Settings</span>
+        <span class="world-name" data-i18n="settings">Settings</span>
       </div>
     </div>
   </div>
@@ -157,23 +183,23 @@
 
     <!-- LANDING PAGE -->
     <div id="landing">
-      <div class="landing-eyebrow"><i class="ti ti-world" aria-hidden="true"></i> Join 2M+ professionals</div>
-      <h1 class="landing-h1">Connect in your <span class="grd">World</span></h1>
-      <p class="landing-sub">Specialized communities built for your profession. Posts, marketplace, jobs, voice rooms — everything your field needs.</p>
+      <div class="landing-eyebrow"><i class="ti ti-world" aria-hidden="true"></i> <span data-i18n="join_members">Join 2M+ professionals</span></div>
+      <h1 class="landing-h1" data-i18n-html="landing_h1">Connect in your <span class="grd">World</span></h1>
+      <p class="landing-sub" data-i18n="landing_sub">Specialized communities built for your profession. Posts, marketplace, jobs, voice rooms — everything your field needs.</p>
       <div class="landing-worlds" id="landingWorlds">
-        <div class="landing-world-btn" onclick="openWorld('dev')"><div class="we">💻</div><div class="wl">Programming</div></div>
-        <div class="landing-world-btn" onclick="openWorld('med')"><div class="we">🩺</div><div class="wl">Medicine</div></div>
-        <div class="landing-world-btn" onclick="openWorld('biz')"><div class="we">💼</div><div class="wl">Entrepreneurship</div></div>
-        <div class="landing-world-btn" onclick="openWorld('edu')"><div class="we">🎓</div><div class="wl">Education</div></div>
-        <div class="landing-world-btn" onclick="openWorld('design')"><div class="we">🎨</div><div class="wl">Design</div></div>
-        <div class="landing-world-btn" onclick="openWorld('photo')"><div class="we">📷</div><div class="wl">Photography</div></div>
-        <div class="landing-world-btn" onclick="openWorld('ai')"><div class="we">🤖</div><div class="wl">AI & ML</div></div>
-        <div class="landing-world-btn" onclick="openWorld('game')"><div class="we">🎮</div><div class="wl">Gaming</div></div>
-        <div class="landing-world-btn" onclick="openWorld('finance')"><div class="we">📈</div><div class="wl">Finance</div></div>
+        <div class="landing-world-btn" onclick="openWorld('dev')"><div class="we">💻</div><div class="wl" data-i18n="w_programming">Programming</div></div>
+        <div class="landing-world-btn" onclick="openWorld('med')"><div class="we">🩺</div><div class="wl" data-i18n="w_med">Medicine</div></div>
+        <div class="landing-world-btn" onclick="openWorld('biz')"><div class="we">💼</div><div class="wl" data-i18n="w_biz">Entrepreneurship</div></div>
+        <div class="landing-world-btn" onclick="openWorld('edu')"><div class="we">🎓</div><div class="wl" data-i18n="w_edu">Education</div></div>
+        <div class="landing-world-btn" onclick="openWorld('design')"><div class="we">🎨</div><div class="wl" data-i18n="w_design">Design</div></div>
+        <div class="landing-world-btn" onclick="openWorld('photo')"><div class="we">📷</div><div class="wl" data-i18n="w_photo">Photography</div></div>
+        <div class="landing-world-btn" onclick="openWorld('ai')"><div class="we">🤖</div><div class="wl" data-i18n="w_ai">AI & ML</div></div>
+        <div class="landing-world-btn" onclick="openWorld('game')"><div class="we">🎮</div><div class="wl" data-i18n="w_game">Gaming</div></div>
+        <div class="landing-world-btn" onclick="openWorld('finance')"><div class="we">📈</div><div class="wl" data-i18n="w_finance">Finance</div></div>
       </div>
       <div class="landing-cta-row">
-        <button class="btn btn-primary" style="padding:12px 28px;font-size:15px" onclick="openWorld('dev')"><i class="ti ti-rocket" aria-hidden="true"></i> Explore Worlds</button>
-        <button class="btn btn-ghost" style="padding:12px 24px;font-size:15px" onclick="showModal('createModal')"><i class="ti ti-plus" aria-hidden="true"></i> Create a World</button>
+        <button class="btn btn-primary" style="padding:12px 28px;font-size:15px" onclick="openWorld('dev')"><i class="ti ti-rocket" aria-hidden="true"></i> <span data-i18n="explore_worlds">Explore Worlds</span></button>
+        <button class="btn btn-ghost" style="padding:12px 24px;font-size:15px" onclick="showModal('createModal')"><i class="ti ti-plus" aria-hidden="true"></i> <span data-i18n="create_world">Create a World</span></button>
       </div>
     </div>
 
@@ -192,22 +218,22 @@
             </div>
           </div>
           <div class="world-actions">
-            <button class="btn btn-ghost" onclick="openSearch()"><i class="ti ti-search" aria-hidden="true"></i> Search</button>
-            <button class="btn btn-primary" onclick="showModal('joinModal')"><i class="ti ti-check" aria-hidden="true"></i> Join World</button>
+            <button class="btn btn-ghost" onclick="openSearch()"><i class="ti ti-search" aria-hidden="true"></i> <span data-i18n="search">Search</span></button>
+            <button class="btn btn-primary" onclick="showModal('joinModal')"><i class="ti ti-check" aria-hidden="true"></i> <span data-i18n="join_world">Join World</span></button>
           </div>
         </div>
         <div class="world-tabs" id="worldTabs">
-          <button class="tab-btn active" onclick="switchTab('home')"><i class="ti ti-home" aria-hidden="true"></i> Home</button>
-          <button class="tab-btn" onclick="switchTab('posts')"><i class="ti ti-news" aria-hidden="true"></i> Posts</button>
-          <button class="tab-btn" onclick="switchTab('reels')"><i class="ti ti-player-play" aria-hidden="true"></i> Reels</button>
-          <button class="tab-btn" onclick="switchTab('videos')"><i class="ti ti-video" aria-hidden="true"></i> Videos</button>
-          <button class="tab-btn" onclick="switchTab('chat')"><i class="ti ti-message-2" aria-hidden="true"></i> Chat</button>
-          <button class="tab-btn" onclick="switchTab('voice')"><i class="ti ti-microphone" aria-hidden="true"></i> Voice Rooms</button>
-          <button class="tab-btn" onclick="switchTab('files')"><i class="ti ti-folder" aria-hidden="true"></i> Files</button>
-          <button class="tab-btn" onclick="switchTab('market')"><i class="ti ti-shopping-bag" aria-hidden="true"></i> Marketplace</button>
-          <button class="tab-btn" onclick="switchTab('jobs')"><i class="ti ti-briefcase" aria-hidden="true"></i> Jobs</button>
-          <button class="tab-btn" onclick="switchTab('events')"><i class="ti ti-calendar" aria-hidden="true"></i> Events</button>
-          <button class="tab-btn" onclick="switchTab('membership')"><i class="ti ti-crown" aria-hidden="true"></i> Membership</button>
+          <button class="tab-btn active" onclick="switchTab('home')"><i class="ti ti-home" aria-hidden="true"></i> <span data-i18n="tab_home">Home</span></button>
+          <button class="tab-btn" onclick="switchTab('posts')"><i class="ti ti-news" aria-hidden="true"></i> <span data-i18n="tab_posts">Posts</span></button>
+          <button class="tab-btn" onclick="switchTab('reels')"><i class="ti ti-player-play" aria-hidden="true"></i> <span data-i18n="tab_reels">Reels</span></button>
+          <button class="tab-btn" onclick="switchTab('videos')"><i class="ti ti-video" aria-hidden="true"></i> <span data-i18n="tab_videos">Videos</span></button>
+          <button class="tab-btn" onclick="switchTab('chat')"><i class="ti ti-message-2" aria-hidden="true"></i> <span data-i18n="tab_chat">Chat</span></button>
+          <button class="tab-btn" onclick="switchTab('voice')"><i class="ti ti-microphone" aria-hidden="true"></i> <span data-i18n="tab_voice">Voice Rooms</span></button>
+          <button class="tab-btn" onclick="switchTab('files')"><i class="ti ti-folder" aria-hidden="true"></i> <span data-i18n="tab_files">Files</span></button>
+          <button class="tab-btn" onclick="switchTab('market')"><i class="ti ti-shopping-bag" aria-hidden="true"></i> <span data-i18n="tab_market">Marketplace</span></button>
+          <button class="tab-btn" onclick="switchTab('jobs')"><i class="ti ti-briefcase" aria-hidden="true"></i> <span data-i18n="tab_jobs">Jobs</span></button>
+          <button class="tab-btn" onclick="switchTab('events')"><i class="ti ti-calendar" aria-hidden="true"></i> <span data-i18n="tab_events">Events</span></button>
+          <button class="tab-btn" onclick="switchTab('membership')"><i class="ti ti-crown" aria-hidden="true"></i> <span data-i18n="tab_membership">Membership</span></button>
         </div>
       </div>
 
@@ -569,6 +595,18 @@
 
     </div><!-- /worldView -->
 
+    <!-- FOOTER -->
+    <footer style="border-top:1px solid var(--border);padding:24px 28px;margin-top:20px;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center;color:var(--text3);font-size:13px">
+      <div>© 2026 WorldHub. <span data-i18n="rights">All rights reserved.</span></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <a href="about.html" style="color:var(--text2);text-decoration:none" data-i18n="about">About</a>
+        <a href="contact.html" style="color:var(--text2);text-decoration:none" data-i18n="contact">Contact</a>
+        <a href="privacy.html" style="color:var(--text2);text-decoration:none" data-i18n="privacy">Privacy Policy</a>
+        <a href="terms.html" style="color:var(--text2);text-decoration:none" data-i18n="terms">Terms of Service</a>
+        <a href="profile.html" style="color:var(--text2);text-decoration:none" data-i18n="my_profile">My Profile</a>
+      </div>
+    </footer>
+
   </div><!-- /contentArea -->
 
 </div><!-- /mainLayout -->
@@ -701,6 +739,8 @@
 </div>
 
 <!-- SCRIPTS (order matters: worlds → app → chat → ai) -->
+<script src="js/i18n.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/worlds.js"></script>
 <script src="js/app.js"></script>
 <script src="js/chat.js"></script>

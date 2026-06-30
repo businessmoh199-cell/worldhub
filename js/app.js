@@ -31,12 +31,9 @@ function toggleLang() {
   document.getElementById('langDropdown').classList.toggle('open');
 }
 function setLang(code, name) {
-  document.getElementById('langLabel').textContent = code;
+  applyTranslations(code);
   document.getElementById('langDropdown').classList.remove('open');
-  document.getElementById('langModalText').textContent = `The interface language will be set to ${name}.`;
-  document.getElementById('langModal').classList.add('open');
 }
-function closeLangModal() { document.getElementById('langModal').classList.remove('open'); }
 
 // Close lang dropdown on outside click
 document.addEventListener('click', (e) => {
