@@ -590,8 +590,8 @@ async function submitForm(e, type) {
     return false;
   }
 
-  const { error } = await window.supabase
-    .from("posts")
+ const { error } = await window.sb
+  .from("posts")
     .insert([
       {
         user_id: session.user.id,
