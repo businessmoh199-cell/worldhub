@@ -582,10 +582,9 @@ async function submitForm(e, type) {
     return false;
   }
 
-  const {
-    data: { session }
-  } = await window.supabase.auth.getSession();
-
+ const {
+  data: { session }
+} = await window.sb.auth.getSession();
   if (!session) {
     showToast("يجب تسجيل الدخول أولاً");
     return false;
