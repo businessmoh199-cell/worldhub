@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/modals.css">
+<link rel="stylesheet" href="css/tabs.css">
 <style>
 html, body { overflow-y: auto; height: auto; }
 .page-wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 60px; }
@@ -42,19 +44,27 @@ html, body { overflow-y: auto; height: auto; }
   <a class="back-link" href="index.html"><i class="ti ti-arrow-left"></i> Back to WorldHub</a>
 
   <div class="profile-cover"></div>
+
   <div class="profile-head">
-    <div class="profile-avatar">YO</div>
+    <div class="profile-avatar" id="profileAvatar">YO</div>
     <div>
-      <div class="profile-name">You <i class="ti ti-rosette-discount-check-filled badge-verified" title="Verified"></i></div>
-      <div class="profile-handle">@you · Flutter Developer · World of Programming</div>
+      <div class="profile-name" id="profileName">You <i class="ti ti-rosette-discount-check-filled badge-verified" id="verifiedBadge" title="Verified"></i></div>
+      <div class="profile-handle" id="profileHandle">@you · Flutter Developer · World of Programming</div>
     </div>
     <div class="profile-actions">
-      <button class="btn btn-secondary" onclick="document.getElementById('editProfileModal').classList.add('open')"><i class="ti ti-edit" aria-hidden="true"></i> Edit Profile</button>
-      <button class="btn btn-ghost"><i class="ti ti-share" aria-hidden="true"></i> Share</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('editProfileModal').classList.add('open')">
+        <i class="ti ti-edit"></i> Edit Profile
+      </button>
+      <button class="btn btn-ghost">
+        <i class="ti ti-share"></i> Share
+      </button>
+      <button class="btn btn-secondary" onclick="logout()">
+        <i class="ti ti-logout"></i> Logout
+      </button>
     </div>
   </div>
 
-  <p class="profile-bio">Flutter & Dart developer passionate about offline-first architecture. Building tools for the next generation of mobile apps. Based in Cairo 🇪🇬.</p>
+  <p class="profile-bio" id="profileBio">Flutter & Dart developer passionate about offline-first architecture. Building tools for the next generation of mobile apps. Based in Cairo 🇪🇬.</p>
 
   <div class="profile-stats">
     <div class="profile-stat"><b>1,204</b><span>Followers</span></div>
@@ -109,18 +119,16 @@ html, body { overflow-y: auto; height: auto; }
 <div class="modal-overlay" id="editProfileModal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal" onclick="event.stopPropagation()">
     <h2>Edit Profile</h2>
-    <div class="edit-field"><label>Display name</label><input class="modal-input" value="You" style="margin-bottom:0"></div>
-    <div class="edit-field"><label>Headline</label><input class="modal-input" value="Flutter Developer · World of Programming" style="margin-bottom:0"></div>
-    <div class="edit-field"><label>Bio</label><textarea class="modal-input" rows="3" style="margin-bottom:0;resize:vertical">Flutter & Dart developer passionate about offline-first architecture.</textarea></div>
+    <div class="edit-field"><label>Display name</label><input class="modal-input" id="editDisplayName" value="You" style="margin-bottom:0"></div>
+    <div class="edit-field"><label>Headline</label><input class="modal-input" id="editHeadline" value="Flutter Developer · World of Programming" style="margin-bottom:0"></div>
+    <div class="edit-field"><label>Bio</label><textarea class="modal-input" id="editBio" rows="3" style="margin-bottom:0;resize:vertical">Flutter & Dart developer passionate about offline-first architecture.</textarea></div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="document.getElementById('editProfileModal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-primary" onclick="document.getElementById('editProfileModal').classList.remove('open')"><i class="ti ti-check" aria-hidden="true"></i> Save</button>
+      <button class="btn btn-primary" onclick="saveProfile()"><i class="ti ti-check" aria-hidden="true"></i> Save</button>
     </div>
   </div>
 </div>
 
-<link rel="stylesheet" href="css/modals.css">
-<link rel="stylesheet" href="css/tabs.css">
 <script src="js/theme.js"></script>
 <script>
 function profTab(name, btn) {
@@ -128,6 +136,89 @@ function profTab(name, btn) {
   document.querySelectorAll('.profile-tabs button').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+
+<script>
+let currentUser = null;
+
+async function loadProfile() {
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  currentUser = session.user;
+
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  if (error) {
+    console.error("Error loading profile:", error.message);
+    return;
+  }
+
+  if (profile) {
+    const profileNameEl = document.getElementById("profileName");
+    const profileHandleEl = document.getElementById("profileHandle");
+    const profileAvatarEl = document.getElementById("profileAvatar");
+    const profileBioEl = document.getElementById("profileBio");
+
+    const displayName = profile.full_name || profile.username || "User";
+
+    // نحافظ على أيقونة التوثيق بدل استبدالها بالكامل
+    profileNameEl.childNodes[0].textContent = displayName + " ";
+
+    profileHandleEl.textContent = "@" + (profile.username || "user");
+
+    profileAvatarEl.textContent = (profile.username || displayName || "U")
+      .substring(0, 2)
+      .toUpperCase();
+
+    if (profile.bio) {
+      profileBioEl.textContent = profile.bio;
+    }
+
+    // تعبئة نموذج التعديل بالقيم الحالية
+    document.getElementById("editDisplayName").value = displayName;
+    document.getElementById("editBio").value = profile.bio || "";
+  }
+}
+
+async function saveProfile() {
+  if (!currentUser) return;
+
+  const newName = document.getElementById("editDisplayName").value.trim();
+  const newBio = document.getElementById("editBio").value.trim();
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ full_name: newName, bio: newBio })
+    .eq("id", currentUser.id);
+
+  if (error) {
+    console.error("Error saving profile:", error.message);
+    alert("حدث خطأ أثناء الحفظ، حاول مجددًا.");
+    return;
+  }
+
+  document.getElementById("editProfileModal").classList.remove("open");
+  loadProfile();
+}
+
+async function logout() {
+  await supabase.auth.signOut();
+  window.location.href = "login.html";
+}
+
+loadProfile();
 </script>
 </body>
 </html>
