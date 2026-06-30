@@ -6,3 +6,5 @@ window.sb = window.supabase.createClient(
   supabaseUrl,
   supabaseKey
 );
+
+console.log("supabase.js loaded");
