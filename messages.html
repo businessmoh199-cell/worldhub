@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messages — WorldHub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/modals.css">
+<style>
+html, body { overflow: hidden; height: 100vh; }
+.msg-layout { display:flex; height: calc(100vh - var(--topbar-h)); }
+.thread-header { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size:14px; font-weight:600; color: var(--text); }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo" onclick="location.href='index.html'" style="cursor:pointer">WorldHub<span>β</span></div>
+  <div style="margin-left:auto"></div>
+</div>
+
+<div class="msg-layout">
+  <div class="chat-sidebar" style="width:280px">
+    <div class="sidebar-label" style="padding:12px 8px 6px">Direct Messages</div>
+    <div id="conversationsList"></div>
+  </div>
+  <div class="chat-main">
+    <div class="thread-header" id="threadHeaderName">Select a conversation</div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-bar">
+      <input class="chat-input" id="chatInput" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendDirectMessage()">
+      <button class="chat-send" onclick="sendDirectMessage()"><i class="ti ti-send"></i></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/posts.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/messages.js"></script>
+<script>
+(async function () {
+  await requireAuth();
+  if (!window.currentUser) return;
+  await loadConversations();
+  subscribeToMessages();
+
+  const params = new URLSearchParams(location.search);
+  const toUser = params.get('to');
+  if (toUser) openConversation(toUser);
+})();
+</script>
+</body>
+</html>

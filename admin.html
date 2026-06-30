@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — WorldHub</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/tabs.css">
+<style>
+html, body { overflow-y: auto; height: auto; }
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 30px 20px 70px; }
+.admin-stats { display:grid; grid-template-columns: repeat(5,1fr); gap:14px; margin-bottom: 28px; }
+@media (max-width:900px){ .admin-stats{ grid-template-columns: repeat(2,1fr);} }
+.admin-section { margin-bottom: 36px; }
+.admin-section h2 { font-family: var(--fontDisplay); font-size: 17px; color: var(--text); margin-bottom: 12px; }
+.admin-row { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--bg2); border:1px solid var(--border); border-radius: var(--radius); margin-bottom:8px; }
+.admin-row .grow { flex:1; min-width:0; }
+.denied { text-align:center; padding: 80px 20px; color: var(--text2); }
+</style>
+</head>
+<body>
+<div class="topbar"><div class="logo" onclick="location.href='index.html'" style="cursor:pointer">WorldHub<span>β</span></div></div>
+
+<div id="adminContent" class="page-wrap" style="display:none">
+  <h1 style="font-family:var(--fontDisplay);font-size:28px;margin-bottom:20px">Admin Dashboard</h1>
+
+  <div class="admin-stats" id="adminStats"></div>
+
+  <div class="admin-section">
+    <h2>Open Reports</h2>
+    <div id="reportsList"><p style="color:var(--text3);font-size:13px">Loading...</p></div>
+  </div>
+
+  <div class="admin-section">
+    <h2>Recent Posts</h2>
+    <div id="adminPostsList"><p style="color:var(--text3);font-size:13px">Loading...</p></div>
+  </div>
+
+  <div class="admin-section">
+    <h2>Users</h2>
+    <div id="adminUsersList"><p style="color:var(--text3);font-size:13px">Loading...</p></div>
+  </div>
+</div>
+
+<div id="deniedView" class="denied" style="display:none">
+  <i class="ti ti-shield-x" style="font-size:40px;color:var(--text3)"></i>
+  <p style="margin-top:10px">You don't have access to the admin dashboard.</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/posts.js"></script>
+<script>
+async function loadStats() {
+  const { data, error } = await supabase.from('admin_stats').select('*').single();
+  const el = document.getElementById('adminStats');
+  if (error || !data) { el.innerHTML = '<p style="color:var(--text3)">Could not load stats.</p>'; return; }
+  const cards = [
+    ['Users', data.users_count, 'ti-users'],
+    ['Posts', data.posts_count, 'ti-file-text'],
+    ['Comments', data.comments_count, 'ti-message-2'],
+    ['Likes', data.likes_count, 'ti-heart'],
+    ['Messages', data.messages_count, 'ti-mail'],
+  ];
+  el.innerHTML = cards.map(([label, value, icon]) => `
+    <div class="stat-card"><div class="stat-label"><i class="ti ${icon}"></i> ${label}</div><div class="stat-value">${value ?? 0}</div></div>
+  `).join('');
+}
+
+async function loadReports() {
+  const el = document.getElementById('reportsList');
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*, reporter:reporter_id(username), post:post_id(content)')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false });
+  if (error || !data || !data.length) { el.innerHTML = '<p style="color:var(--text3);font-size:13px">No open reports.</p>'; return; }
+  el.innerHTML = data.map(r => `
+    <div class="admin-row">
+      <div class="grow">
+        <div style="font-size:13px;color:var(--text)">${(r.post?.content || '').slice(0,80)}</div>
+        <div style="font-size:11px;color:var(--text3)">Reported by @${r.reporter?.username || 'user'} · ${r.reason || ''}</div>
+      </div>
+      <button class="btn btn-secondary" onclick="dismissReport('${r.id}')">Dismiss</button>
+      <button class="btn btn-primary" style="background:var(--red)" onclick="adminDeletePost('${r.post_id}','${r.id}')">Remove Post</button>
+    </div>`).join('');
+}
+
+async function dismissReport(id) {
+  await supabase.from('reports').update({ status: 'dismissed' }).eq('id', id);
+  loadReports();
+}
+async function adminDeletePost(postId, reportId) {
+  if (!confirm('Remove this post permanently?')) return;
+  await supabase.from('posts').delete().eq('id', postId);
+  await supabase.from('reports').update({ status: 'reviewed' }).eq('id', reportId);
+  loadReports(); loadAdminPosts(); loadStats();
+}
+
+async function loadAdminPosts() {
+  const el = document.getElementById('adminPostsList');
+  const { data, error } = await supabase
+    .from('posts')
+    .select('id, content, created_at, profiles(username)')
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error || !data) { el.innerHTML = '<p style="color:var(--text3);font-size:13px">Could not load posts.</p>'; return; }
+  el.innerHTML = data.map(p => `
+    <div class="admin-row">
+      <div class="grow">
+        <div style="font-size:13px;color:var(--text)">${(p.content || '').slice(0,90)}</div>
+        <div style="font-size:11px;color:var(--text3)">@${p.profiles?.username || 'user'} · ${new Date(p.created_at).toLocaleString()}</div>
+      </div>
+      <button class="btn btn-secondary" onclick="adminDeletePostDirect('${p.id}')"><i class="ti ti-trash"></i></button>
+    </div>`).join('');
+}
+async function adminDeletePostDirect(id) {
+  if (!confirm('Delete this post?')) return;
+  await supabase.from('posts').delete().eq('id', id);
+  loadAdminPosts(); loadStats();
+}
+
+async function loadAdminUsers() {
+  const el = document.getElementById('adminUsersList');
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, full_name, is_admin, created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error || !data) { el.innerHTML = '<p style="color:var(--text3);font-size:13px">Could not load users.</p>'; return; }
+  el.innerHTML = data.map(u => `
+    <div class="admin-row">
+      <div class="grow">
+        <div style="font-size:13px;color:var(--text)">${u.full_name || u.username} ${u.is_admin ? '<span class="tag" style="margin-left:6px">admin</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--text3)">@${u.username}</div>
+      </div>
+    </div>`).join('');
+}
+
+(async function () {
+  const user = await requireAuth();
+  if (!user) return;
+
+  const { data: profile } = await supabase.from('profiles').select('is_admin').eq('id', user.id).single();
+  if (!profile?.is_admin) {
+    document.getElementById('deniedView').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('adminContent').style.display = 'block';
+  loadStats(); loadReports(); loadAdminPosts(); loadAdminUsers();
+})();
+</script>
+</body>
+</html>
