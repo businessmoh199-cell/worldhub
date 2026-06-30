@@ -17,7 +17,12 @@ html, body { overflow: hidden; height: 100vh; }
 <body>
 <div class="topbar">
   <div class="logo" onclick="location.href='index.html'" style="cursor:pointer">WorldHub<span>β</span></div>
-  <div style="margin-left:auto"></div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:10px">
+    <button class="btn btn-primary" onclick="window.location.href='create-post.html'" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:13px">
+      <i class="ti ti-plus" aria-hidden="true"></i> Create
+    </button>
+    <div class="avatar-btn" onclick="window.location.href='profile.html'" title="My Profile" style="cursor:pointer">YO</div>
+  </div>
 </div>
 
 <div class="msg-layout">

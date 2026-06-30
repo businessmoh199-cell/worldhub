@@ -56,7 +56,14 @@
       <div class="lang-option" onclick="setLang('FR','Français')"><span>🇫🇷</span> Français</div>
       <div class="lang-option" onclick="setLang('ES','Español')"><span>🇪🇸</span> Español</div>
     </div>
+    <button class="btn btn-primary" onclick="window.location.href='create-post.html'" title="Create" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:13px">
+      <i class="ti ti-plus" aria-hidden="true"></i> <span data-i18n="create">Create</span>
+    </button>
     <div class="notif-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme"><i class="ti ti-moon" aria-hidden="true" id="themeIcon"></i></div>
+    <div class="notif-btn" onclick="window.location.href='messages.html'" title="Messages" style="cursor:pointer;position:relative">
+      <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+      <span style="position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--green);border:2px solid var(--bg2)"></span>
+    </div>
     <div class="notif-btn"><i class="ti ti-bell" aria-hidden="true"></i></div>
     <div class="avatar-btn" onclick="window.location.href='profile.html'" title="My Profile" style="cursor:pointer">YO</div>
   </div>
@@ -163,6 +170,14 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-section" style="padding-bottom:16px">
       <div class="sidebar-label" data-i18n="quick_actions">Quick Actions</div>
+      <div class="world-item" onclick="window.location.href='create-post.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-square-rounded-plus" style="color:var(--accent2)"></i></span>
+        <span class="world-name" data-i18n="create_post">Create Post</span>
+      </div>
+      <div class="world-item" onclick="window.location.href='messages.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-message-circle-2" style="color:var(--accent2)"></i></span>
+        <span class="world-name" data-i18n="messages">Messages</span>
+      </div>
       <div class="world-item" onclick="showModal('createModal')">
         <span class="world-emoji" style="font-size:16px"><i class="ti ti-plus" style="color:var(--accent2)"></i></span>
         <span class="world-name" data-i18n="create_world">Create World</span>
