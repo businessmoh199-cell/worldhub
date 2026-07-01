@@ -261,11 +261,18 @@ body {
 }
 
 /* RESPONSIVE */
+@media (max-width: 1180px) {
+  .sidebar { display: none; } /* right-hand Worlds column */
+}
 @media (max-width: 900px) {
-  .sidebar { display: none; }
   .ai-panel { display: none; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .sub-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .left-nav { width: 60px; padding: 10px 0; }
+  .nav-icon-item { width: 40px; height: 40px; font-size: 19px; }
+  .left-nav-brand { display: none; }
 }
 @media (max-width: 600px) {
   .topbar-search { display: none; }
