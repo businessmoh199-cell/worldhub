@@ -916,6 +916,27 @@ async function toggleLike(postId) {
 
 /* -------- COMMENTS -------- */
 
+let commentOriginalText = {}; // commentId -> original content (for cancel-edit)
+
+function timeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+
+  if (diffSec < 30) return "الآن";
+  if (diffSec < 60) return `منذ ${diffSec} ثانية`;
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin === 1 ? "منذ دقيقة" : diffMin === 2 ? "منذ دقيقتين" : `منذ ${diffMin} دقائق`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return diffHour === 1 ? "منذ ساعة" : diffHour === 2 ? "منذ ساعتين" : `منذ ${diffHour} ساعات`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return diffDay === 1 ? "منذ يوم" : diffDay === 2 ? "منذ يومين" : `منذ ${diffDay} أيام`;
+
+  return date.toLocaleDateString("ar-DZ");
+}
+
 async function toggleComments(postId) {
   const box = document.getElementById(`comments-${postId}`);
   const isOpen = box.style.display !== "none";
@@ -928,13 +949,89 @@ async function toggleComments(postId) {
   }
 }
 
+// يبني شجرة تعليقات/ردود من قائمة مسطّحة اعتماداً على parent_id
+function buildCommentTree(comments) {
+  const map = {};
+  const roots = [];
+
+  comments.forEach(c => { c._children = []; map[c.id] = c; });
+  comments.forEach(c => {
+    if (c.parent_id && map[c.parent_id]) {
+      map[c.parent_id]._children.push(c);
+    } else {
+      roots.push(c);
+    }
+  });
+
+  return roots;
+}
+
+function renderComment(c, postId, depth) {
+  const authorName = c.profiles?.full_name || c.profiles?.username || "مستخدم";
+  const initials = (c.profiles?.username || authorName || "U").substring(0, 2).toUpperCase();
+  const likeCount = c.comment_likes?.[0]?.count || 0;
+  const isOwner = currentUserId && c.user_id === currentUserId;
+  const indent = depth > 0 ? ` style="margin-inline-start:${Math.min(depth, 4) * 26}px"` : "";
+
+  const childrenHtml = (c._children || [])
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map(child => renderComment(child, postId, depth + 1))
+    .join("");
+
+  return `
+    <div class="comment-item"${indent} id="comment-${c.id}">
+      <div class="comment-avatar">${escapeHtml(initials)}</div>
+      <div class="comment-content">
+        <div class="comment-header">
+          <span class="comment-author"><i class="ti ti-user-circle" aria-hidden="true"></i> ${escapeHtml(authorName)}</span>
+          <span class="comment-time">${timeAgo(c.created_at)}</span>
+        </div>
+
+        <div class="comment-text" id="comment-text-${c.id}">${escapeHtml(c.content)}</div>
+
+        <div class="comment-actions">
+          <button class="reply-like-btn${c._liked ? " liked" : ""}" id="reply-like-${c.id}" onclick="toggleCommentLike('${c.id}','${postId}')">
+            <i class="ti ${c._liked ? "ti-heart-filled" : "ti-heart"}" aria-hidden="true"></i>
+            إعجاب <span id="reply-like-count-${c.id}">${likeCount}</span>
+          </button>
+          <button class="reply-btn" onclick="showReplyInput('${c.id}')">
+            <i class="ti ti-corner-up-left" aria-hidden="true"></i> رد
+          </button>
+          ${isOwner ? `
+          <button class="edit-comment-btn" onclick="startEditComment('${c.id}')">
+            <i class="ti ti-pencil" aria-hidden="true"></i> تعديل
+          </button>
+          <button class="delete-comment-btn" onclick="deleteComment('${c.id}','${postId}')">
+            <i class="ti ti-trash" aria-hidden="true"></i> حذف
+          </button>` : ``}
+        </div>
+
+        <div class="reply-input-box" id="reply-input-${c.id}" style="display:none">
+          <input type="text" id="reply-text-${c.id}" placeholder="اكتب رداً..."
+            onkeydown="if(event.key==='Enter'){event.preventDefault();submitReply('${c.id}','${postId}');}">
+          <button onclick="submitReply('${c.id}','${postId}')" title="إرسال الرد">
+            <i class="ti ti-send" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="comment-replies">
+          ${childrenHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 async function loadComments(postId) {
   const list = document.getElementById(`comments-list-${postId}`);
   list.innerHTML = `<div class="comments-loading">جارِ تحميل التعليقات...</div>`;
 
+  const { data: { session } } = await window.sb.auth.getSession();
+  const userId = session?.user?.id || null;
+
   const { data, error } = await window.sb
     .from("comments")
-    .select("*, profiles(username, full_name)")
+    .select("*, profiles(username, full_name), comment_likes(count)")
     .eq("post_id", postId)
     .order("created_at", { ascending: true });
 
@@ -949,21 +1046,35 @@ async function loadComments(postId) {
     return;
   }
 
-  list.innerHTML = data.map(c => {
-    const authorName = c.profiles?.full_name || c.profiles?.username || "مستخدم";
-    const initials = (c.profiles?.username || authorName || "U").substring(0, 2).toUpperCase();
+  let likedSet = new Set();
+  if (userId) {
+    const { data: myLikes } = await window.sb
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("user_id", userId);
 
-    return `
-      <div class="comment-item">
-        <div class="comment-avatar">${escapeHtml(initials)}</div>
-        <div class="comment-content">
-          <div class="comment-author">${escapeHtml(authorName)}</div>
-          <div class="comment-text">${escapeHtml(c.content)}</div>
-          <div class="comment-time">${new Date(c.created_at).toLocaleString("ar-DZ")}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
+    if (myLikes) likedSet = new Set(myLikes.map(l => l.comment_id));
+  }
+
+  data.forEach(c => {
+    c._liked = likedSet.has(c.id);
+    commentOriginalText[c.id] = c.content;
+  });
+
+  const tree = buildCommentTree(data);
+  list.innerHTML = tree.map(c => renderComment(c, postId, 0)).join("");
+}
+
+async function refreshCommentCount(postId) {
+  const { count, error } = await window.sb
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+
+  if (!error && count !== null) {
+    const el = document.getElementById(`comment-count-${postId}`);
+    if (el) el.textContent = count;
+  }
 }
 
 async function submitComment(postId) {
@@ -987,7 +1098,8 @@ async function submitComment(postId) {
     .insert({
       post_id: postId,
       user_id: session.user.id,
-      content: content
+      content: content,
+      parent_id: null
     });
 
   if (error) {
@@ -1001,8 +1113,178 @@ async function submitComment(postId) {
   await loadComments(postId);
   loadedComments.add(postId);
 
-  const countEl = document.getElementById(`comment-count-${postId}`);
-  countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+  await refreshCommentCount(postId);
+}
+
+/* -------- REPLIES -------- */
+
+function showReplyInput(commentId) {
+  const box = document.getElementById(`reply-input-${commentId}`);
+  const isOpen = box.style.display !== "none";
+  box.style.display = isOpen ? "none" : "flex";
+
+  if (!isOpen) {
+    document.getElementById(`reply-text-${commentId}`).focus();
+  }
+}
+
+async function submitReply(parentId, postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للرد");
+    return;
+  }
+
+  const input = document.getElementById(`reply-text-${parentId}`);
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .insert({
+      post_id: postId,
+      user_id: session.user.id,
+      content: content,
+      parent_id: parentId
+    });
+
+  if (error) {
+    console.error("Error adding reply:", error.message);
+    alert("حدث خطأ أثناء إضافة الرد");
+    return;
+  }
+
+  input.value = "";
+  document.getElementById(`reply-input-${parentId}`).style.display = "none";
+
+  loadedComments.delete(postId);
+  await loadComments(postId);
+  loadedComments.add(postId);
+
+  await refreshCommentCount(postId);
+}
+
+/* -------- EDIT / DELETE COMMENT (owner only) -------- */
+
+function startEditComment(commentId) {
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  const original = commentOriginalText[commentId] ?? textEl.textContent;
+
+  textEl.innerHTML = `
+    <div class="comment-edit-box">
+      <input type="text" id="edit-input-${commentId}" value="${escapeHtml(original)}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditComment('${commentId}');} if(event.key==='Escape'){cancelEditComment('${commentId}');}">
+      <div class="comment-edit-actions">
+        <button class="save-edit-btn" onclick="saveEditComment('${commentId}')" title="حفظ">
+          <i class="ti ti-check" aria-hidden="true"></i>
+        </button>
+        <button class="cancel-edit-btn" onclick="cancelEditComment('${commentId}')" title="إلغاء">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById(`edit-input-${commentId}`).focus();
+}
+
+function cancelEditComment(commentId) {
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  textEl.textContent = commentOriginalText[commentId] ?? "";
+}
+
+async function saveEditComment(commentId) {
+  const input = document.getElementById(`edit-input-${commentId}`);
+  const newContent = input.value.trim();
+
+  if (!newContent) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .update({ content: newContent })
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("Error editing comment:", error.message);
+    alert("حدث خطأ أثناء تعديل التعليق");
+    return;
+  }
+
+  commentOriginalText[commentId] = newContent;
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  textEl.textContent = newContent;
+}
+
+async function deleteComment(commentId, postId) {
+  if (!confirm("هل أنت متأكد من حذف هذا التعليق؟")) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("Error deleting comment:", error.message);
+    alert("حدث خطأ أثناء حذف التعليق");
+    return;
+  }
+
+  const el = document.getElementById(`comment-${commentId}`);
+  if (el) el.remove();
+
+  await refreshCommentCount(postId);
+}
+
+/* -------- COMMENT LIKES -------- */
+
+async function toggleCommentLike(commentId, postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+  }
+
+  const userId = session.user.id;
+  const btn = document.getElementById(`reply-like-${commentId}`);
+  const countEl = document.getElementById(`reply-like-count-${commentId}`);
+  const icon = btn.querySelector("i");
+  const isLiked = btn.classList.contains("liked");
+
+  if (isLiked) {
+    const { error } = await window.sb
+      .from("comment_likes")
+      .delete()
+      .eq("comment_id", commentId)
+      .eq("user_id", userId);
+
+    if (error) { console.error(error); return; }
+
+    btn.classList.remove("liked");
+    icon.classList.remove("ti-heart-filled");
+    icon.classList.add("ti-heart");
+    countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
+
+  } else {
+    const { error } = await window.sb
+      .from("comment_likes")
+      .insert({ comment_id: commentId, user_id: userId });
+
+    if (error) { console.error(error); return; }
+
+    btn.classList.add("liked");
+    icon.classList.remove("ti-heart");
+    icon.classList.add("ti-heart-filled");
+    countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+  }
 }
 
 /* -------- SHARE -------- */

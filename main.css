@@ -278,83 +278,100 @@ body {
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-top: 12px;
-  margin-top: 12px;
+  gap: 10px;
+  padding-top: 14px;
+  margin-top: 14px;
   border-top: 1px solid var(--border);
 }
 
-/* Shared base for all action buttons */
+/* Shared base — pill-shaped, background visible at rest (not just on hover) */
 .post-actions button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 7px 13px;
+  gap: 7px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 15px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text2);
   font-family: var(--font);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+              transform 0.12s ease, box-shadow 0.15s ease;
 }
 .post-actions button i {
   font-size: 16px;
   line-height: 1;
   transition: transform 0.18s ease;
 }
+.post-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
 .post-actions button:active {
-  transform: scale(0.94);
+  transform: scale(0.94) translateY(0);
+  box-shadow: none;
 }
 
-/* LIKE BUTTON */
-.like-btn:hover {
+/* LIKE BUTTON — muted red tint at rest, solid fill once liked */
+.like-btn {
+  color: #f87171;
   background: rgba(239,68,68,0.08);
-  color: var(--red);
-  border-color: rgba(239,68,68,0.2);
+  border-color: rgba(239,68,68,0.18);
 }
-.like-btn:hover i {
-  transform: scale(1.12);
+.like-btn i { color: #f87171; }
+.like-btn:hover {
+  background: rgba(239,68,68,0.16);
+  border-color: rgba(239,68,68,0.35);
 }
 .like-btn.liked {
-  color: var(--red);
-  background: rgba(239,68,68,0.12);
-  border-color: rgba(239,68,68,0.28);
+  color: #fff;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(239,68,68,0.35);
 }
+.like-btn.liked i { color: #fff; }
 .like-btn.liked:hover {
-  background: rgba(239,68,68,0.18);
+  box-shadow: 0 5px 14px rgba(239,68,68,0.45);
 }
 .like-btn.liked i {
-  animation: like-pop 0.3s ease;
+  animation: like-pop 0.32s ease;
 }
 @keyframes like-pop {
   0%   { transform: scale(1); }
-  35%  { transform: scale(1.35); }
-  100% { transform: scale(1); }
+  40%  { transform: scale(1.4) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0); }
 }
 
-/* COMMENT BUTTON */
-.comment-btn:hover {
-  background: var(--accentBg);
+/* COMMENT BUTTON — accent tint */
+.comment-btn {
   color: var(--accent2);
+  background: var(--accentBg);
   border-color: var(--accentBorder);
 }
-.comment-btn:hover i {
-  transform: scale(1.1);
+.comment-btn i { color: var(--accent2); }
+.comment-btn:hover {
+  background: rgba(108,99,255,0.2);
+  border-color: var(--accent2);
 }
 
-/* SHARE BUTTON */
+/* SHARE BUTTON — neutral, pinned to the end */
 .share-btn {
   margin-left: auto;
-}
-.share-btn:hover {
-  background: var(--bg3);
-  color: var(--text);
+  color: var(--text2);
+  background: var(--bg4);
   border-color: var(--border2);
 }
+.share-btn i { color: var(--text3); }
+.share-btn:hover {
+  color: var(--text);
+  background: var(--bg3);
+  border-color: var(--accentBorder);
+}
 .share-btn:hover i {
+  color: var(--accent2);
   transform: translateX(-2px);
 }
 
@@ -362,7 +379,7 @@ body {
 .likes-count,
 .comments-count {
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
   color: inherit;
 }
 
@@ -379,9 +396,10 @@ body {
 .comments-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 280px;
+  gap: 12px;
+  max-height: 420px;
   overflow-y: auto;
+  padding-right: 2px;
 }
 .comments-list::-webkit-scrollbar { width: 5px; }
 .comments-list::-webkit-scrollbar-track { background: transparent; }
@@ -394,6 +412,7 @@ body {
   padding: 12px 0;
 }
 
+/* -------- Single comment -------- */
 .comment-item {
   display: flex;
   gap: 10px;
@@ -405,38 +424,184 @@ body {
   background: linear-gradient(135deg, var(--accent), #a855f7);
   color: #fff;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(108,99,255,0.25);
 }
 .comment-content {
   background: var(--bg3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
+  padding: 10px 13px;
   flex: 1;
   min-width: 0;
+  transition: border-color 0.15s ease;
+}
+.comment-content:hover {
+  border-color: var(--border2);
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .comment-author {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
 }
-.comment-text {
-  font-size: 13px;
-  color: var(--text2);
-  margin-top: 2px;
-  line-height: 1.5;
-  word-wrap: break-word;
-}
+.comment-author i { font-size: 15px; color: var(--accent2); }
 .comment-time {
   font-size: 11px;
   color: var(--text3);
-  margin-top: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
+.comment-text {
+  font-size: 13.5px;
+  color: var(--text2);
+  margin-top: 6px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+/* -------- Mini action row: like / reply / edit / delete -------- */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.comment-actions button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.comment-actions button i { font-size: 14px; }
+
+.reply-like-btn:hover { color: var(--red); }
+.reply-like-btn.liked { color: var(--red); }
+.reply-like-btn.liked i { animation: like-pop 0.32s ease; }
+
+.reply-btn:hover { color: var(--accent2); }
+.edit-comment-btn:hover { color: var(--amber); }
+.delete-comment-btn:hover { color: var(--red); }
+
+/* -------- Reply input (inline, per comment) -------- */
+.reply-input-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.reply-input-box input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.reply-input-box input:focus { border-color: var(--accentBorder); }
+.reply-input-box input::placeholder { color: var(--text3); }
+.reply-input-box button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.reply-input-box button:hover { background: var(--accent2); }
+
+/* -------- Inline edit box -------- */
+.comment-edit-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.comment-edit-box input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--accentBorder);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+}
+.comment-edit-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.comment-edit-actions button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+.save-edit-btn { background: var(--greenBg); color: var(--green); }
+.save-edit-btn:hover { background: var(--green); color: #fff; }
+.cancel-edit-btn { background: var(--bg4); color: var(--text3); }
+.cancel-edit-btn:hover { background: var(--bg4); color: var(--text); }
+
+/* -------- Threaded replies -------- */
+.comment-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.comment-replies:not(:empty) {
+  margin-top: 10px;
+  padding-inline-start: 14px;
+  border-inline-start: 2px solid var(--border);
+}
+.comment-replies .comment-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+.comment-replies .comment-content {
+  padding: 8px 11px;
+}
+
+/* -------- New top-level comment input -------- */
 .comment-input {
   display: flex;
   gap: 8px;
