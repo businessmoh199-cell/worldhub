@@ -732,9 +732,6 @@
 <script src="js/chat.js"></script>
 <script src="js/ai.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
 <script>
 async function checkUser() {
   const {
@@ -754,9 +751,23 @@ checkUser();
 <script src="js/supabase.js"></script>
 
 <script>
+
+async function checkUser() {
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
+}
+
 async function loadPosts() {
 
   const container = document.getElementById("feed-posts");
+
+  if (!container) return;
 
   const { data, error } = await window.sb
     .from("posts")
@@ -764,36 +775,51 @@ async function loadPosts() {
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Error loading posts:", error);
     return;
   }
 
   container.innerHTML = "";
 
   data.forEach(post => {
+
     container.innerHTML += `
       <article class="post-card">
-        <div class="post-title">منشور</div>
-        <div class="post-body">${post.content || ""}</div>
-        <div class="post-footer">
-          <small>${new Date(post.created_at).toLocaleString("ar-DZ")}</small>
+
+        <div class="post-title">
+          منشور
         </div>
+
+        <div class="post-body">
+          ${post.content || ""}
+        </div>
+
+        <div class="post-actions">
+          <button onclick="likePost(${post.id})">
+            ❤️ إعجاب
+          </button>
+        </div>
+
+        <div class="post-footer">
+          <small>
+            ${new Date(post.created_at).toLocaleString("ar-DZ")}
+          </small>
+        </div>
+
       </article>
     `;
+
   });
 }
 
-loadPosts();
-</script>
-  
-  async function likePost(postId) {
+async function likePost(postId) {
 
   const {
     data: { session }
   } = await window.sb.auth.getSession();
 
   if (!session) {
-    alert("يجب تسجيل الدخول");
+    alert("يجب تسجيل الدخول أولاً");
     return;
   }
 
@@ -808,6 +834,7 @@ loadPosts();
 
   if (error) {
     console.error(error);
+    alert("ربما أعجبت بهذا المنشور مسبقاً");
     return;
   }
 
@@ -817,8 +844,15 @@ loadPosts();
 
   if (button) {
     button.classList.add("liked");
+    button.innerHTML = "❤️ تم الإعجاب";
   }
+
+  alert("تم تسجيل الإعجاب بنجاح");
 }
+
+checkUser();
+
+</script>
 </body>
 </html>
 
