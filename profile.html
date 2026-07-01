@@ -153,11 +153,11 @@ async function loadProfile() {
 
   currentUser = session.user;
 
-  const { data: profile, error } = await window.sb
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
+ const { data: profile, error } = await window.sb
+  .from("profiles")
+  .select("*")
+  .eq("id", currentUser.id)
+  .maybeSingle();
 
   if (error) {
     console.error("Error loading profile:", error.message);
