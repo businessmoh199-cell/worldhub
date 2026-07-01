@@ -145,7 +145,7 @@ function profTab(name, btn) {
 let currentUser = null;
 
 async function loadProfile() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await window.sb.auth.getSession();
 
   if (!session) {
     window.location.href = "login.html";
@@ -154,7 +154,7 @@ async function loadProfile() {
 
   currentUser = session.user;
 
-  const { data: profile, error } = await supabase
+  const { data: profile, error } = await window.sb
     .from("profiles")
     .select("*")
     .eq("id", currentUser.id)
@@ -198,7 +198,7 @@ async function saveProfile() {
   const newName = document.getElementById("editDisplayName").value.trim();
   const newBio = document.getElementById("editBio").value.trim();
 
-  const { error } = await supabase
+  const { error } = await window.sb
     .from("profiles")
     .update({ full_name: newName, bio: newBio })
     .eq("id", currentUser.id);
@@ -214,7 +214,7 @@ async function saveProfile() {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await window.sb.auth.signOut();
   window.location.href = "login.html";
 }
 
@@ -225,7 +225,7 @@ async function loadMyPosts() {
   const postsCount = document.getElementById("posts-count");
   const emptyBox = document.getElementById("posts-empty");
 
-  const { data, error } = await supabase
+  const { data, error } = await window.sb
     .from("posts")
     .select("*")
     .eq("user_id", currentUser.id)
