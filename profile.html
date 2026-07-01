@@ -253,16 +253,15 @@ async function loadMyPosts() {
 
   const container = document.getElementById("my-posts");
 
-  data.forEach(post => {
-    container.innerHTML += `
-      <div class="post-card">
-        <p>${post.content}</p>
-        <small>${new Date(post.created_at).toLocaleString()}</small>
-      </div>
-    `;
-  });
-}
-
+data.forEach(post => {
+  container.innerHTML += `
+    <div class="post-card">
+      <h3>منشور</h3>
+      <p>${post.content}</p>
+      <small>${new Date(post.created_at).toLocaleString("ar-DZ")}</small>
+    </div>
+  `;
+});
 loadMyPosts();
 
 </script>
