@@ -263,36 +263,7 @@
         <div style="display:flex;gap:20px">
           <div style="flex:1;min-width:0">
             <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab('posts')">See all</div></div>
-            <div class="post-card">
-              <div class="post-header">
-                <div class="post-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div>
-                <div class="post-meta"><div class="post-author">Sara Rahman</div><div class="post-time">2 hours ago</div></div>
-                <div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">Flutter</div>
-              </div>
-              <div class="post-title">Built a full offline-first app with Flutter + Hive — here's my architecture</div>
-              <div class="post-body">After 3 months of struggling with sync conflicts, I finally cracked the pattern. Sharing the complete source with state management...</div>
-              <div class="post-tags"><span class="tag">Flutter</span><span class="tag">Hive</span><span class="tag">Architecture</span><span class="tag">Offline-first</span></div>
-              <div class="post-footer">
-                <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 284</div>
-                <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 47</div>
-                <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i> Share</div>
-                <div class="post-action"><i class="ti ti-bookmark" aria-hidden="true"></i> Save</div>
-              </div>
-            </div>
-            <div class="post-card">
-              <div class="post-header">
-                <div class="post-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div>
-                <div class="post-meta"><div class="post-author">Mokhtar K.</div><div class="post-time">5 hours ago</div></div>
-                <div class="post-badge" style="background:var(--greenBg);color:var(--green);border-color:rgba(34,197,94,0.3)">Rust</div>
-              </div>
-              <div class="post-title">Why I rewrote my Python backend in Rust — 40x performance gain</div>
-              <div class="post-body">Benchmark results attached. The memory footprint dropped from 800MB to 22MB with identical throughput under load testing...</div>
-              <div class="post-footer">
-                <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 512</div>
-                <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 93</div>
-                <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i> Share</div>
-              </div>
-            </div>
+            <div id="feed-posts"></div>
           </div>
           <div style="width:240px;flex-shrink:0">
             <div class="section-header"><div class="section-title">Top Companies</div></div>
@@ -779,5 +750,41 @@ checkUser();
 </script>
 
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<script>
+async function loadPosts() {
+
+  const container = document.getElementById("feed-posts");
+
+  const { data, error } = await window.sb
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  container.innerHTML = "";
+
+  data.forEach(post => {
+    container.innerHTML += `
+      <article class="post-card">
+        <div class="post-title">منشور</div>
+        <div class="post-body">${post.content || ""}</div>
+        <div class="post-footer">
+          <small>${new Date(post.created_at).toLocaleString("ar-DZ")}</small>
+        </div>
+      </article>
+    `;
+  });
+}
+
+loadPosts();
+</script>
 </body>
 </html>
+
