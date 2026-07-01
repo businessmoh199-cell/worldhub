@@ -81,18 +81,18 @@ html, body { overflow-y: auto; height: auto; }
   </div>
 
   <div class="profile-section" id="pt-posts">
-    <div class="post-card">
-      <div class="post-header">
-        <div class="post-avatar" style="background:linear-gradient(135deg,var(--accent),#a855f7);color:#fff">YO</div>
-        <div class="post-meta"><div class="post-author">You</div><div class="post-time">3 days ago</div></div>
-      </div>
-      <div class="post-title">My new offline-first starter kit is live</div>
-      <div class="post-body">Sharing the complete architecture with state management and conflict resolution included.</div>
-      <div class="post-footer">
-        <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 284</div>
-        <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 47</div>
-      </div>
+
+    <div class="my-posts-header">
+      <h3>منشوراتي</h3>
+      <span class="posts-count" id="posts-count">0 منشور</span>
     </div>
+
+    <div class="posts-list" id="posts-list"></div>
+
+    <div class="posts-empty" id="posts-empty" style="display:none;">
+      <p>لم تقم بنشر أي شيء بعد</p>
+    </div>
+
   </div>
 
   <div class="profile-section" id="pt-about" style="display:none">
@@ -139,7 +139,7 @@ function profTab(name, btn) {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
+<script src="supabase.js"></script>
 
 <script>
 let currentUser = null;
@@ -218,53 +218,51 @@ async function logout() {
   window.location.href = "login.html";
 }
 
-loadProfile();
-</script>
-
-  <div id="my-posts">
-  <h3>منشوراتي</h3>
-</div>
-
-  ...
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<script>
-
 async function loadMyPosts() {
+  if (!currentUser) return;
 
-  const {
-    data: { session }
-  } = await window.sb.auth.getSession();
+  const postsList = document.getElementById("posts-list");
+  const postsCount = document.getElementById("posts-count");
+  const emptyBox = document.getElementById("posts-empty");
 
-  if (!session) return;
-
-  const { data, error } = await window.sb
+  const { data, error } = await supabase
     .from("posts")
     .select("*")
-    .eq("user_id", session.user.id)
+    .eq("user_id", currentUser.id)
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.error(error);
+    console.error("Error loading posts:", error.message);
     return;
   }
 
-  const container = document.getElementById("my-posts");
+  postsCount.textContent = `${data.length} منشور`;
+  postsList.innerHTML = "";
 
-data.forEach(post => {
-  container.innerHTML += `
-    <div class="post-card">
-      <h3>منشور</h3>
-      <p>${post.content}</p>
-      <small>${new Date(post.created_at).toLocaleString("ar-DZ")}</small>
-    </div>
-  `;
-});
-loadMyPosts();
+  if (data.length === 0) {
+    emptyBox.style.display = "block";
+    return;
+  }
 
+  emptyBox.style.display = "none";
+
+  data.forEach(post => {
+    postsList.innerHTML += `
+      <article class="post-card">
+        <h3>منشور</h3>
+        <p>${post.content}</p>
+        <small>
+          ${new Date(post.created_at).toLocaleString("ar-DZ")}
+        </small>
+      </article>
+    `;
+  });
+}
+
+(async () => {
+  await loadProfile();
+  await loadMyPosts();
+})();
 </script>
-
 </body>
 </html>
