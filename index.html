@@ -807,6 +807,9 @@ async function toggleFollow(targetId) {
   const myId = session.user.id;
   if (myId === targetId) return;
 
+  const buttons = document.querySelectorAll(`button[data-user="${targetId}"]`);
+  buttons.forEach(b => b.disabled = true);
+
   const isFollowing = myFollowing.has(targetId);
 
   if (isFollowing) {
@@ -816,7 +819,11 @@ async function toggleFollow(targetId) {
       .eq("follower_id", myId)
       .eq("following_id", targetId);
 
-    if (error) { console.error("Error unfollowing:", error.message); return; }
+    if (error) {
+      console.error("Error unfollowing:", error.message);
+      buttons.forEach(b => b.disabled = false);
+      return;
+    }
     myFollowing.delete(targetId);
 
   } else {
@@ -824,7 +831,11 @@ async function toggleFollow(targetId) {
       .from("follows")
       .insert({ follower_id: myId, following_id: targetId });
 
-    if (error) { console.error("Error following:", error.message); return; }
+    if (error) {
+      console.error("Error following:", error.message);
+      buttons.forEach(b => b.disabled = false);
+      return;
+    }
     myFollowing.add(targetId);
   }
 

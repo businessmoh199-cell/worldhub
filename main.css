@@ -672,3 +672,13 @@ body {
 
 /* profile page: follower / following stat pair wraps cleanly */
 .profile-stat { cursor: default; }
+
+/* subtle pulse when a stat value updates live (follow/unfollow, new post, etc.) */
+@keyframes statPulse {
+  0%   { transform: scale(1.22); color: var(--accent2); }
+  100% { transform: scale(1); color: var(--text); }
+}
+.profile-stat b.stat-pulse { animation: statPulse 0.4s ease; display: inline-block; }
+
+/* disabled state shared by all .btn variants (prevents double-click races) */
+.btn:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }

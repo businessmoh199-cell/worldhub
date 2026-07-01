@@ -277,36 +277,57 @@ async function loadProfile() {
     ? "لم تقم بنشر أي شيء بعد"
     : "لم يقم هذا المستخدم بنشر أي شيء بعد";
 
-  await loadFollowCounts();
+  await loadFollowStats(viewedUserId);
+  await checkFollowStatus(viewedUserId);
   updateProfileActionsUI();
 }
 
-/* -------- FOLLOWERS / FOLLOWING -------- */
+/* ===================== FOLLOWERS / FOLLOWING ===================== */
 
-async function loadFollowCounts() {
-  const { count: followersCount } = await window.sb
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("following_id", viewedUserId);
+/**
+ * يجلب عدد المتابعين وعدد المتابَعين لملف شخصي معيّن ويحدّث الواجهة،
+ * مع حركة بسيطة عند تغيّر القيمة حتى تبدو التحديثات "حيّة" بدل قفزة مفاجئة.
+ */
+async function loadFollowStats(profileId) {
+  const [{ count: followersCount }, { count: followingCount }] = await Promise.all([
+    window.sb.from("follows").select("*", { count: "exact", head: true }).eq("following_id", profileId),
+    window.sb.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", profileId)
+  ]);
 
-  const { count: followingCount } = await window.sb
-    .from("follows")
-    .select("*", { count: "exact", head: true })
-    .eq("follower_id", viewedUserId);
+  animateStat("stat-followers", followersCount || 0);
+  animateStat("stat-following", followingCount || 0);
+}
 
-  setStat("stat-followers", followersCount || 0);
-  setStat("stat-following", followingCount || 0);
+/** يحدّث قيمة إحصائية داخل .profile-stat مع تأثير نبضة خفيفة عند تغيّرها فعليًا */
+function animateStat(id, value) {
+  const el = document.getElementById(id);
+  const b = el?.querySelector("b");
+  if (!b) return;
 
-  if (!isOwnProfile) {
-    const { data: existing } = await window.sb
-      .from("follows")
-      .select("follower_id")
-      .eq("follower_id", currentUser.id)
-      .eq("following_id", viewedUserId)
-      .maybeSingle();
+  if (b.textContent === String(value)) return;
 
-    isFollowingViewed = !!existing;
+  b.textContent = value;
+  b.classList.remove("stat-pulse");
+  void b.offsetWidth; // إعادة تشغيل الحركة CSS
+  b.classList.add("stat-pulse");
+}
+
+/** يتحقق هل المستخدم الحالي يتابع صاحب هذا الملف الشخصي، دون التأثير على الأزرار مباشرة */
+async function checkFollowStatus(profileId) {
+  if (isOwnProfile) {
+    isFollowingViewed = false;
+    return;
   }
+
+  const { data, error } = await window.sb
+    .from("follows")
+    .select("id")
+    .eq("follower_id", currentUser.id)
+    .eq("following_id", profileId)
+    .maybeSingle();
+
+  if (error) console.error("Error checking follow status:", error.message);
+  isFollowingViewed = !!data;
 }
 
 function updateProfileActionsUI() {
@@ -327,15 +348,16 @@ function updateProfileActionsUI() {
   if (!followBtn) {
     followBtn = document.createElement("button");
     followBtn.id = "followProfileBtn";
+    followBtn.type = "button";
+    followBtn.onclick = toggleFollow;
     document.getElementById("profileActions").insertBefore(followBtn, document.getElementById("shareProfileBtn"));
   }
 
   renderFollowButton(followBtn);
 }
 
+/** يرسم زر المتابعة حسب الحالة الحالية (متابَع / غير متابَع)، بدون لمس أي منطق شبكي */
 function renderFollowButton(btn) {
-  btn.onclick = toggleFollowProfile;
-
   if (isFollowingViewed) {
     btn.className = "btn btn-following";
     btn.innerHTML = `
@@ -347,36 +369,57 @@ function renderFollowButton(btn) {
   }
 }
 
-async function toggleFollowProfile() {
-  if (!currentUser || isOwnProfile) return;
+/** يتابع صاحب الملف الشخصي المعروض حاليًا */
+async function followUser() {
+  const { error } = await window.sb
+    .from("follows")
+    .insert({ follower_id: currentUser.id, following_id: viewedUserId });
 
-  const followersStatEl = document.querySelector("#stat-followers b");
-  const currentCount = parseInt((followersStatEl?.textContent || "0").replace(/,/g, ""), 10) || 0;
-
-  if (isFollowingViewed) {
-    const { error } = await window.sb
-      .from("follows")
-      .delete()
-      .eq("follower_id", currentUser.id)
-      .eq("following_id", viewedUserId);
-
-    if (error) { console.error("Error unfollowing:", error.message); return; }
-
-    isFollowingViewed = false;
-    setStat("stat-followers", Math.max(0, currentCount - 1));
-
-  } else {
-    const { error } = await window.sb
-      .from("follows")
-      .insert({ follower_id: currentUser.id, following_id: viewedUserId });
-
-    if (error) { console.error("Error following:", error.message); return; }
-
-    isFollowingViewed = true;
-    setStat("stat-followers", currentCount + 1);
+  if (error) {
+    console.error("Error following:", error.message);
+    alert("حدث خطأ أثناء المتابعة، حاول مجددًا.");
+    return false;
   }
 
-  renderFollowButton(document.getElementById("followProfileBtn"));
+  isFollowingViewed = true;
+  return true;
+}
+
+/** يلغي متابعة صاحب الملف الشخصي المعروض حاليًا */
+async function unfollowUser() {
+  const { error } = await window.sb
+    .from("follows")
+    .delete()
+    .eq("follower_id", currentUser.id)
+    .eq("following_id", viewedUserId);
+
+  if (error) {
+    console.error("Error unfollowing:", error.message);
+    alert("حدث خطأ أثناء إلغاء المتابعة، حاول مجددًا.");
+    return false;
+  }
+
+  isFollowingViewed = false;
+  return true;
+}
+
+/** يبدّل حالة المتابعة عند الضغط على الزر، مع تعطيله مؤقتًا لمنع النقر المزدوج */
+async function toggleFollow() {
+  if (!currentUser || isOwnProfile) return;
+
+  const btn = document.getElementById("followProfileBtn");
+  if (!btn || btn.disabled) return;
+
+  btn.disabled = true;
+
+  const success = isFollowingViewed ? await unfollowUser() : await followUser();
+
+  btn.disabled = false;
+
+  if (!success) return;
+
+  renderFollowButton(btn);
+  await loadFollowStats(viewedUserId);
 }
 
 async function shareProfile() {
