@@ -816,15 +816,15 @@ async function loadPosts() {
         </div>
 
         <div class="post-actions">
-          <button id="like-btn-${post.id}" class="${isLiked ? "liked" : ""}" onclick="toggleLike('${post.id}')">
+          <button id="like-btn-${post.id}" class="like-btn${isLiked ? " liked" : ""}" onclick="toggleLike('${post.id}')" aria-pressed="${isLiked}" title="إعجاب">
             <i class="ti ${isLiked ? "ti-heart-filled" : "ti-heart"}" aria-hidden="true"></i>
-            <span id="like-count-${post.id}">${likeCount}</span>
+            <span class="likes-count" id="like-count-${post.id}">${likeCount}</span>
           </button>
-          <button onclick="toggleComments('${post.id}')">
+          <button class="comment-btn" onclick="toggleComments('${post.id}')" title="تعليق">
             <i class="ti ti-message-circle-2" aria-hidden="true"></i>
-            <span id="comment-count-${post.id}">${commentCount}</span>
+            <span class="comments-count" id="comment-count-${post.id}">${commentCount}</span>
           </button>
-          <button class="share-button" onclick="sharePost('${post.id}')">
+          <button class="share-btn" onclick="sharePost('${post.id}')" title="مشاركة">
             <i class="ti ti-share" aria-hidden="true"></i> مشاركة
           </button>
         </div>
@@ -889,6 +889,7 @@ async function toggleLike(postId) {
     }
 
     btn.classList.remove("liked");
+    btn.setAttribute("aria-pressed", "false");
     icon.classList.remove("ti-heart-filled");
     icon.classList.add("ti-heart");
     countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
@@ -906,6 +907,7 @@ async function toggleLike(postId) {
     }
 
     btn.classList.add("liked");
+    btn.setAttribute("aria-pressed", "true");
     icon.classList.remove("ti-heart");
     icon.classList.add("ti-heart-filled");
     countEl.textContent = parseInt(countEl.textContent, 10) + 1;

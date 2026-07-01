@@ -278,11 +278,13 @@ body {
 .post-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   padding-top: 12px;
   margin-top: 12px;
   border-top: 1px solid var(--border);
 }
+
+/* Shared base for all action buttons */
 .post-actions button {
   display: flex;
   align-items: center;
@@ -290,30 +292,80 @@ body {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
-  padding: 6px 12px;
+  padding: 7px 13px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text2);
   font-family: var(--font);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
-.post-actions button i { font-size: 16px; }
-.post-actions button:hover {
-  background: var(--bg3);
-  color: var(--text);
+.post-actions button i {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.18s ease;
 }
-.post-actions button.liked {
+.post-actions button:active {
+  transform: scale(0.94);
+}
+
+/* LIKE BUTTON */
+.like-btn:hover {
+  background: rgba(239,68,68,0.08);
   color: var(--red);
-  background: rgba(239,68,68,0.1);
-  border-color: rgba(239,68,68,0.25);
+  border-color: rgba(239,68,68,0.2);
 }
-.post-actions button.liked:hover {
-  background: rgba(239,68,68,0.16);
+.like-btn:hover i {
+  transform: scale(1.12);
 }
-.post-actions button.share-button {
+.like-btn.liked {
+  color: var(--red);
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.28);
+}
+.like-btn.liked:hover {
+  background: rgba(239,68,68,0.18);
+}
+.like-btn.liked i {
+  animation: like-pop 0.3s ease;
+}
+@keyframes like-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+/* COMMENT BUTTON */
+.comment-btn:hover {
+  background: var(--accentBg);
+  color: var(--accent2);
+  border-color: var(--accentBorder);
+}
+.comment-btn:hover i {
+  transform: scale(1.1);
+}
+
+/* SHARE BUTTON */
+.share-btn {
   margin-left: auto;
 }
+.share-btn:hover {
+  background: var(--bg3);
+  color: var(--text);
+  border-color: var(--border2);
+}
+.share-btn:hover i {
+  transform: translateX(-2px);
+}
+
+/* COUNTS */
+.likes-count,
+.comments-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: inherit;
+}
+
 
 /* ===================== COMMENTS ===================== */
 .comments-box {
