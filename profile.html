@@ -210,7 +210,7 @@ async function loadProfile() {
   viewedUserId = params.get("user") || currentUser.id;
   isOwnProfile = viewedUserId === currentUser.id;
 
-  const { data: profile, error } = await window.sb
+  let { data: profile, error } = await window.sb
     .from("profiles")
     .select("*")
     .eq("id", viewedUserId)
@@ -221,11 +221,31 @@ async function loadProfile() {
     return;
   }
 
+  // لا يوجد صف بعد لهذا المستخدم في جدول profiles
   if (!profile) {
-    document.querySelector(".page-wrap").innerHTML = `
-      <a class="back-link" href="index.html"><i class="ti ti-arrow-left"></i> Back to WorldHub</a>
-      <p style="color:var(--text3);text-align:center;padding:60px 0">لم يتم العثور على هذا الملف الشخصي.</p>`;
-    return;
+    if (!isOwnProfile) {
+      document.querySelector(".page-wrap").innerHTML = `
+        <a class="back-link" href="index.html"><i class="ti ti-arrow-left"></i> Back to WorldHub</a>
+        <p style="color:var(--text3);text-align:center;padding:60px 0">لم يتم العثور على هذا الملف الشخصي.</p>`;
+      return;
+    }
+
+    // ملفنا الشخصي: ننشئه تلقائيًا بقيم افتراضية من بيانات الحساب
+    const fallbackUsername = (currentUser.email || "user").split("@")[0];
+
+    const { data: created, error: createError } = await window.sb
+      .from("profiles")
+      .insert({ id: currentUser.id, username: fallbackUsername })
+      .select()
+      .maybeSingle();
+
+    if (createError) {
+      console.error("Error creating profile:", createError.message);
+      // نستمر بقيم افتراضية محلية حتى لو فشل الإنشاء، لتبقى الصفحة قابلة للاستخدام
+      profile = { id: currentUser.id, username: fallbackUsername, full_name: null, bio: null };
+    } else {
+      profile = created;
+    }
   }
 
   const profileNameEl = document.getElementById("profileName");
