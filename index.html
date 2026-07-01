@@ -724,7 +724,9 @@
   </div>
 </div>
 
-<!-- SCRIPTS (order matters: worlds → app → chat → ai) -->
+<!-- SCRIPTS (order matters: supabase → worlds → app → chat → ai) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/worlds.js"></script>
@@ -733,24 +735,16 @@
 <script src="js/ai.js"></script>
 
 <script>
-async function checkUser() {
-  const {
-    data: { session }
-  } = await window.sb.auth.getSession();
+/* ===================== FEED: POSTS / LIKES / COMMENTS / SHARE ===================== */
 
-  if (!session) {
-    window.location.href = "login.html";
-  }
+let currentUserId = null;
+const loadedComments = new Set(); // postIds whose comments have already been fetched
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
 }
-
-checkUser();
-</script>
-
-</script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<script>
 
 async function checkUser() {
   if (!window.sb) {
@@ -766,6 +760,8 @@ async function checkUser() {
     window.location.href = "login.html";
     return;
   }
+
+  currentUserId = session.user.id;
 }
 
 async function loadPosts() {
@@ -774,9 +770,13 @@ async function loadPosts() {
 
   if (!container) return;
 
-  const { data, error } = await window.sb
+  const { data: { session } } = await window.sb.auth.getSession();
+  const userId = session?.user?.id || null;
+  currentUserId = userId;
+
+  const { data: posts, error } = await window.sb
     .from("posts")
-    .select("*")
+    .select("*, likes(count), comments(count)")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -784,24 +784,48 @@ async function loadPosts() {
     return;
   }
 
+  // نجلب إعجابات المستخدم الحالي لمعرفة أي المنشورات أعجب بها مسبقاً
+  let likedSet = new Set();
+  if (userId) {
+    const { data: myLikes, error: likesError } = await window.sb
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", userId);
+
+    if (!likesError && myLikes) {
+      likedSet = new Set(myLikes.map(l => l.post_id));
+    }
+  }
+
   container.innerHTML = "";
 
-  data.forEach(post => {
+  posts.forEach(post => {
+    const likeCount = post.likes?.[0]?.count || 0;
+    const commentCount = post.comments?.[0]?.count || 0;
+    const isLiked = likedSet.has(post.id);
 
     container.innerHTML += `
-      <article class="post-card">
+      <article class="post-card" id="post-${post.id}">
 
         <div class="post-title">
           منشور
         </div>
 
         <div class="post-body">
-          ${post.content || ""}
+          ${escapeHtml(post.content || "")}
         </div>
 
         <div class="post-actions">
-          <button onclick="likePost('${post.id}')">
-            ❤️ إعجاب
+          <button id="like-btn-${post.id}" class="${isLiked ? "liked" : ""}" onclick="toggleLike('${post.id}')">
+            <i class="ti ${isLiked ? "ti-heart-filled" : "ti-heart"}" aria-hidden="true"></i>
+            <span id="like-count-${post.id}">${likeCount}</span>
+          </button>
+          <button onclick="toggleComments('${post.id}')">
+            <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+            <span id="comment-count-${post.id}">${commentCount}</span>
+          </button>
+          <button class="share-button" onclick="sharePost('${post.id}')">
+            <i class="ti ti-share" aria-hidden="true"></i> مشاركة
           </button>
         </div>
 
@@ -811,13 +835,30 @@ async function loadPosts() {
           </small>
         </div>
 
+        <div class="comments-box" id="comments-${post.id}" style="display:none">
+          <div class="comments-list" id="comments-list-${post.id}"></div>
+          <div class="comment-input">
+            <input
+              type="text"
+              id="comment-input-${post.id}"
+              placeholder="اكتب تعليقاً..."
+              onkeydown="if(event.key==='Enter'){event.preventDefault();submitComment('${post.id}');}"
+            >
+            <button onclick="submitComment('${post.id}')" title="إرسال">
+              <i class="ti ti-send" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
       </article>
     `;
 
   });
 }
 
-async function likePost(postId) {
+/* -------- LIKES -------- */
+
+async function toggleLike(postId) {
 
   const {
     data: { session }
@@ -829,42 +870,171 @@ async function likePost(postId) {
   }
 
   const userId = session.user.id;
+  const btn = document.getElementById(`like-btn-${postId}`);
+  const countEl = document.getElementById(`like-count-${postId}`);
+  const icon = btn.querySelector("i");
+  const isLiked = btn.classList.contains("liked");
 
-  const { error } = await window.sb
-    .from("likes")
-    .insert({
-      post_id: postId,
-      user_id: userId
-    });
+  if (isLiked) {
+    // إلغاء الإعجاب
+    const { error } = await window.sb
+      .from("likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    btn.classList.remove("liked");
+    icon.classList.remove("ti-heart-filled");
+    icon.classList.add("ti-heart");
+    countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
+
+  } else {
+    // تسجيل إعجاب
+    const { error } = await window.sb
+      .from("likes")
+      .insert({ post_id: postId, user_id: userId });
+
+    if (error) {
+      console.error(error);
+      alert("ربما أعجبت بهذا المنشور مسبقاً");
+      return;
+    }
+
+    btn.classList.add("liked");
+    icon.classList.remove("ti-heart");
+    icon.classList.add("ti-heart-filled");
+    countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+  }
+}
+
+/* -------- COMMENTS -------- */
+
+async function toggleComments(postId) {
+  const box = document.getElementById(`comments-${postId}`);
+  const isOpen = box.style.display !== "none";
+
+  box.style.display = isOpen ? "none" : "block";
+
+  if (!isOpen && !loadedComments.has(postId)) {
+    await loadComments(postId);
+    loadedComments.add(postId);
+  }
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById(`comments-list-${postId}`);
+  list.innerHTML = `<div class="comments-loading">جارِ تحميل التعليقات...</div>`;
+
+  const { data, error } = await window.sb
+    .from("comments")
+    .select("*, profiles(username, full_name)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
 
   if (error) {
-    console.error(error);
-    alert("ربما أعجبت بهذا المنشور مسبقاً");
+    console.error("Error loading comments:", error.message);
+    list.innerHTML = `<div class="comments-empty">تعذر تحميل التعليقات</div>`;
     return;
   }
 
-  const button = document.querySelector(
-    `button[onclick="likePost('${postId}')"]`
-  );
-
-  if (button) {
-    button.classList.add("liked");
-    button.innerHTML = "❤️ تم الإعجاب";
+  if (!data || data.length === 0) {
+    list.innerHTML = `<div class="comments-empty">لا توجد تعليقات بعد، كن أول من يعلّق</div>`;
+    return;
   }
 
-  alert("تم تسجيل الإعجاب بنجاح");
+  list.innerHTML = data.map(c => {
+    const authorName = c.profiles?.full_name || c.profiles?.username || "مستخدم";
+    const initials = (c.profiles?.username || authorName || "U").substring(0, 2).toUpperCase();
+
+    return `
+      <div class="comment-item">
+        <div class="comment-avatar">${escapeHtml(initials)}</div>
+        <div class="comment-content">
+          <div class="comment-author">${escapeHtml(authorName)}</div>
+          <div class="comment-text">${escapeHtml(c.content)}</div>
+          <div class="comment-time">${new Date(c.created_at).toLocaleString("ar-DZ")}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
 }
+
+async function submitComment(postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للتعليق");
+    return;
+  }
+
+  const input = document.getElementById(`comment-input-${postId}`);
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .insert({
+      post_id: postId,
+      user_id: session.user.id,
+      content: content
+    });
+
+  if (error) {
+    console.error("Error adding comment:", error.message);
+    alert("حدث خطأ أثناء إضافة التعليق");
+    return;
+  }
+
+  input.value = "";
+  loadedComments.delete(postId);
+  await loadComments(postId);
+  loadedComments.add(postId);
+
+  const countEl = document.getElementById(`comment-count-${postId}`);
+  countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+}
+
+/* -------- SHARE -------- */
+
+async function sharePost(postId) {
+  const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "WorldHub",
+        text: "شاهد هذا المنشور على WorldHub",
+        url
+      });
+    } catch (e) {
+      // المستخدم ألغى المشاركة، لا داعي لفعل شيء
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("تم نسخ رابط المنشور");
+  } catch (e) {
+    prompt("انسخ رابط المنشور:", url);
+  }
+}
+
+/* -------- INIT -------- */
 
 window.addEventListener("load", async () => {
   await checkUser();
   await loadPosts();
 });
-
-</script>
-
-checkUser();
-
 </script>
 </body>
 </html>
-
