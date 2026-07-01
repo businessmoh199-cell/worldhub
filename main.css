@@ -635,3 +635,40 @@ body {
   transition: background 0.15s;
 }
 .comment-input button:hover { background: var(--accent2); }
+
+/* ===================== FOLLOW BUTTON ===================== */
+.btn-follow {
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  color: #fff;
+  border: 1px solid transparent;
+}
+.btn-follow:hover { filter: brightness(1.1); box-shadow: 0 4px 14px rgba(108,99,255,0.35); }
+.btn-follow:active { transform: scale(0.96); }
+
+.btn-following {
+  background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+}
+.btn-following:hover {
+  background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.3);
+}
+.btn-following:active { transform: scale(0.96); }
+
+/* label / icon swap on hover: "متابَع" -> "إلغاء المتابعة" */
+.btn-following .flabel-off,
+.btn-following .ficon-off { display: none; }
+.btn-following:hover .flabel-on,
+.btn-following:hover .ficon-on { display: none; }
+.btn-following:hover .flabel-off,
+.btn-following:hover .ficon-off { display: inline-flex; }
+
+/* compact variant used inline inside post headers */
+.follow-btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 20px; font-weight: 600; }
+.follow-btn-sm i { font-size: 14px; }
+
+/* clickable author name / avatar (feed + profile) */
+.post-author-link, .post-avatar-link { cursor: pointer; }
+.post-author-link:hover { color: var(--accent2); text-decoration: underline; }
+.post-avatar-link:hover { filter: brightness(1.15); }
+
+/* profile page: follower / following stat pair wraps cleanly */
+.profile-stat { cursor: default; }

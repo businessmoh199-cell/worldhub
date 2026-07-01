@@ -738,12 +738,99 @@
 /* ===================== FEED: POSTS / LIKES / COMMENTS / SHARE ===================== */
 
 let currentUserId = null;
+let myFollowing = new Set(); // معرّفات المستخدمين الذين نتابعهم حاليًا
 const loadedComments = new Set(); // postIds whose comments have already been fetched
 
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str ?? "";
   return div.innerHTML;
+}
+
+/* -------- HELPERS: TIME / AVATAR -------- */
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return "الآن";
+  if (diff < 3600) return `${Math.floor(diff / 60)} د`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} س`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} يوم`;
+  return new Date(dateStr).toLocaleDateString("ar-DZ");
+}
+
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg,#6c63ff,#a855f7)",
+  "linear-gradient(135deg,#22c55e,#0ea5e9)",
+  "linear-gradient(135deg,#f59e0b,#ef4444)",
+  "linear-gradient(135deg,#ec4899,#a855f7)",
+  "linear-gradient(135deg,#0ea5e9,#6366f1)"
+];
+
+function gradientFor(id) {
+  let hash = 0;
+  for (const ch of String(id || "u")) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+}
+
+function goToProfile(userId) {
+  if (!userId) return;
+  window.location.href = (userId === currentUserId) ? "profile.html" : `profile.html?user=${userId}`;
+}
+
+/* -------- FOLLOW / UNFOLLOW -------- */
+
+function renderFollowBtn(authorId) {
+  if (!authorId || authorId === currentUserId) return ""; // لا زر متابعة على منشوراتنا الخاصة
+
+  if (myFollowing.has(authorId)) {
+    return `
+      <button class="btn btn-following follow-btn-sm" data-user="${authorId}" onclick="toggleFollow('${authorId}')" style="margin-left:auto" title="متابَع">
+        <i class="ti ti-user-check ficon-on" aria-hidden="true"></i><i class="ti ti-user-x ficon-off" aria-hidden="true"></i>
+        <span class="flabel-on">متابَع</span><span class="flabel-off">إلغاء المتابعة</span>
+      </button>`;
+  }
+
+  return `
+    <button class="btn btn-follow follow-btn-sm" data-user="${authorId}" onclick="toggleFollow('${authorId}')" style="margin-left:auto" title="متابعة">
+      <i class="ti ti-user-plus" aria-hidden="true"></i> متابعة
+    </button>`;
+}
+
+async function toggleFollow(targetId) {
+  const { data: { session } } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للمتابعة");
+    return;
+  }
+
+  const myId = session.user.id;
+  if (myId === targetId) return;
+
+  const isFollowing = myFollowing.has(targetId);
+
+  if (isFollowing) {
+    const { error } = await window.sb
+      .from("follows")
+      .delete()
+      .eq("follower_id", myId)
+      .eq("following_id", targetId);
+
+    if (error) { console.error("Error unfollowing:", error.message); return; }
+    myFollowing.delete(targetId);
+
+  } else {
+    const { error } = await window.sb
+      .from("follows")
+      .insert({ follower_id: myId, following_id: targetId });
+
+    if (error) { console.error("Error following:", error.message); return; }
+    myFollowing.add(targetId);
+  }
+
+  document.querySelectorAll(`button[data-user="${targetId}"]`).forEach(btn => {
+    btn.outerHTML = renderFollowBtn(targetId);
+  });
 }
 
 async function checkUser() {
@@ -797,6 +884,33 @@ async function loadPosts() {
     }
   }
 
+  // من نتابعهم حاليًا (لعرض حالة زر المتابعة الصحيحة)
+  myFollowing = new Set();
+  if (userId) {
+    const { data: myFollows, error: followsError } = await window.sb
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", userId);
+
+    if (!followsError && myFollows) {
+      myFollowing = new Set(myFollows.map(f => f.following_id));
+    }
+  }
+
+  // بيانات أصحاب المنشورات (الاسم/المعرف) لعرضهم في رأس كل منشور
+  const authorIds = [...new Set(posts.map(p => p.user_id).filter(Boolean))];
+  const profilesMap = {};
+  if (authorIds.length) {
+    const { data: authorProfiles, error: profilesError } = await window.sb
+      .from("profiles")
+      .select("id, username, full_name")
+      .in("id", authorIds);
+
+    if (!profilesError && authorProfiles) {
+      authorProfiles.forEach(p => { profilesMap[p.id] = p; });
+    }
+  }
+
   container.innerHTML = "";
 
   posts.forEach(post => {
@@ -804,11 +918,21 @@ async function loadPosts() {
     const commentCount = post.comments?.[0]?.count || 0;
     const isLiked = likedSet.has(post.id);
 
+    const authorId = post.user_id;
+    const author = profilesMap[authorId];
+    const authorName = author?.full_name || author?.username || "مستخدم";
+    const authorInitials = (author?.username || authorName || "U").substring(0, 2).toUpperCase();
+
     container.innerHTML += `
       <article class="post-card" id="post-${post.id}">
 
-        <div class="post-title">
-          منشور
+        <div class="post-header">
+          <div class="post-avatar post-avatar-link" style="background:${gradientFor(authorId)};color:#fff" onclick="goToProfile('${authorId}')" title="${escapeHtml(authorName)}">${escapeHtml(authorInitials)}</div>
+          <div class="post-meta">
+            <div class="post-author post-author-link" onclick="goToProfile('${authorId}')">${escapeHtml(authorName)}</div>
+            <div class="post-time">${timeAgo(post.created_at)}</div>
+          </div>
+          ${renderFollowBtn(authorId)}
         </div>
 
         <div class="post-body">

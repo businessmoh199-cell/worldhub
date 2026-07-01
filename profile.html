@@ -97,14 +97,14 @@ html, body { overflow-y: auto; height: auto; }
       <div class="profile-name" id="profileName">You <i class="ti ti-rosette-discount-check-filled badge-verified" id="verifiedBadge" title="Verified"></i></div>
       <div class="profile-handle" id="profileHandle">@you · Flutter Developer · World of Programming</div>
     </div>
-    <div class="profile-actions">
-      <button class="btn btn-secondary" onclick="document.getElementById('editProfileModal').classList.add('open')">
+    <div class="profile-actions" id="profileActions">
+      <button class="btn btn-secondary" id="editProfileBtn" onclick="document.getElementById('editProfileModal').classList.add('open')">
         <i class="ti ti-edit"></i> Edit Profile
       </button>
-      <button class="btn btn-ghost">
+      <button class="btn btn-ghost" id="shareProfileBtn" onclick="shareProfile()">
         <i class="ti ti-share"></i> Share
       </button>
-      <button class="btn btn-secondary" onclick="logout()">
+      <button class="btn btn-secondary" id="logoutBtn" onclick="logout()">
         <i class="ti ti-logout"></i> Logout
       </button>
     </div>
@@ -113,9 +113,9 @@ html, body { overflow-y: auto; height: auto; }
   <p class="profile-bio" id="profileBio">Flutter & Dart developer passionate about offline-first architecture. Building tools for the next generation of mobile apps. Based in Cairo 🇪🇬.</p>
 
   <div class="profile-stats">
-    <div class="profile-stat"><b>1,204</b><span>Followers</span></div>
-    <div class="profile-stat"><b>318</b><span>Following</span></div>
-    <div class="profile-stat" id="stat-posts"><b>47</b><span>Posts</span></div>
+    <div class="profile-stat" id="stat-followers"><b>0</b><span>Followers</span></div>
+    <div class="profile-stat" id="stat-following"><b>0</b><span>Following</span></div>
+    <div class="profile-stat" id="stat-posts"><b>0</b><span>Posts</span></div>
     <div class="profile-stat" id="stat-likes"><b>0</b><span>Likes received</span></div>
     <div class="profile-stat" id="stat-comments"><b>0</b><span>Comments received</span></div>
     <div class="profile-stat"><b>9</b><span>Worlds joined</span></div>
@@ -131,7 +131,7 @@ html, body { overflow-y: auto; height: auto; }
   <div class="profile-section" id="pt-posts">
 
     <div class="my-posts-header">
-      <h3>منشوراتي</h3>
+      <h3 id="myPostsHeading">منشوراتي</h3>
       <span class="posts-count" id="posts-count">0 منشور</span>
     </div>
 
@@ -140,7 +140,7 @@ html, body { overflow-y: auto; height: auto; }
     <div class="posts-list" id="posts-list"></div>
 
     <div class="posts-empty" id="posts-empty" style="display:none;">
-      <p>لم تقم بنشر أي شيء بعد</p>
+      <p id="postsEmptyText">لم تقم بنشر أي شيء بعد</p>
     </div>
 
   </div>
@@ -191,7 +191,10 @@ function profTab(name, btn) {
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script>
-let currentUser = null;
+let currentUser = null;     // المستخدم المسجّل حاليًا (الجلسة)
+let viewedUserId = null;    // معرّف الملف الشخصي المعروض (قد يكون شخصًا آخر)
+let isOwnProfile = true;
+let isFollowingViewed = false;
 
 async function loadProfile() {
   const { data: { session } } = await window.sb.auth.getSession();
@@ -203,41 +206,176 @@ async function loadProfile() {
 
   currentUser = session.user;
 
- const { data: profile, error } = await window.sb
-  .from("profiles")
-  .select("*")
-  .eq("id", currentUser.id)
-  .maybeSingle();
+  const params = new URLSearchParams(window.location.search);
+  viewedUserId = params.get("user") || currentUser.id;
+  isOwnProfile = viewedUserId === currentUser.id;
+
+  const { data: profile, error } = await window.sb
+    .from("profiles")
+    .select("*")
+    .eq("id", viewedUserId)
+    .maybeSingle();
 
   if (error) {
     console.error("Error loading profile:", error.message);
     return;
   }
 
-  if (profile) {
-    const profileNameEl = document.getElementById("profileName");
-    const profileHandleEl = document.getElementById("profileHandle");
-    const profileAvatarEl = document.getElementById("profileAvatar");
-    const profileBioEl = document.getElementById("profileBio");
+  if (!profile) {
+    document.querySelector(".page-wrap").innerHTML = `
+      <a class="back-link" href="index.html"><i class="ti ti-arrow-left"></i> Back to WorldHub</a>
+      <p style="color:var(--text3);text-align:center;padding:60px 0">لم يتم العثور على هذا الملف الشخصي.</p>`;
+    return;
+  }
 
-    const displayName = profile.full_name || profile.username || "User";
+  const profileNameEl = document.getElementById("profileName");
+  const profileHandleEl = document.getElementById("profileHandle");
+  const profileAvatarEl = document.getElementById("profileAvatar");
+  const profileBioEl = document.getElementById("profileBio");
 
-    // نحافظ على أيقونة التوثيق بدل استبدالها بالكامل
-    profileNameEl.childNodes[0].textContent = displayName + " ";
+  const displayName = profile.full_name || profile.username || "User";
 
-    profileHandleEl.textContent = "@" + (profile.username || "user");
+  // نحافظ على أيقونة التوثيق بدل استبدالها بالكامل
+  profileNameEl.childNodes[0].textContent = displayName + " ";
 
-    profileAvatarEl.textContent = (profile.username || displayName || "U")
-      .substring(0, 2)
-      .toUpperCase();
+  profileHandleEl.textContent = "@" + (profile.username || "user");
 
-    if (profile.bio) {
-      profileBioEl.textContent = profile.bio;
-    }
+  profileAvatarEl.textContent = (profile.username || displayName || "U")
+    .substring(0, 2)
+    .toUpperCase();
 
+  profileBioEl.textContent = profile.bio || "";
+
+  if (isOwnProfile) {
     // تعبئة نموذج التعديل بالقيم الحالية
     document.getElementById("editDisplayName").value = displayName;
     document.getElementById("editBio").value = profile.bio || "";
+  }
+
+  document.getElementById("myPostsHeading").textContent = isOwnProfile ? "منشوراتي" : "المنشورات";
+  document.getElementById("postsEmptyText").textContent = isOwnProfile
+    ? "لم تقم بنشر أي شيء بعد"
+    : "لم يقم هذا المستخدم بنشر أي شيء بعد";
+
+  await loadFollowCounts();
+  updateProfileActionsUI();
+}
+
+/* -------- FOLLOWERS / FOLLOWING -------- */
+
+async function loadFollowCounts() {
+  const { count: followersCount } = await window.sb
+    .from("follows")
+    .select("*", { count: "exact", head: true })
+    .eq("following_id", viewedUserId);
+
+  const { count: followingCount } = await window.sb
+    .from("follows")
+    .select("*", { count: "exact", head: true })
+    .eq("follower_id", viewedUserId);
+
+  setStat("stat-followers", followersCount || 0);
+  setStat("stat-following", followingCount || 0);
+
+  if (!isOwnProfile) {
+    const { data: existing } = await window.sb
+      .from("follows")
+      .select("follower_id")
+      .eq("follower_id", currentUser.id)
+      .eq("following_id", viewedUserId)
+      .maybeSingle();
+
+    isFollowingViewed = !!existing;
+  }
+}
+
+function updateProfileActionsUI() {
+  const editBtn = document.getElementById("editProfileBtn");
+  const logoutBtnEl = document.getElementById("logoutBtn");
+  let followBtn = document.getElementById("followProfileBtn");
+
+  if (isOwnProfile) {
+    editBtn.style.display = "flex";
+    logoutBtnEl.style.display = "flex";
+    if (followBtn) followBtn.remove();
+    return;
+  }
+
+  editBtn.style.display = "none";
+  logoutBtnEl.style.display = "none";
+
+  if (!followBtn) {
+    followBtn = document.createElement("button");
+    followBtn.id = "followProfileBtn";
+    document.getElementById("profileActions").insertBefore(followBtn, document.getElementById("shareProfileBtn"));
+  }
+
+  renderFollowButton(followBtn);
+}
+
+function renderFollowButton(btn) {
+  btn.onclick = toggleFollowProfile;
+
+  if (isFollowingViewed) {
+    btn.className = "btn btn-following";
+    btn.innerHTML = `
+      <i class="ti ti-user-check ficon-on" aria-hidden="true"></i><i class="ti ti-user-x ficon-off" aria-hidden="true"></i>
+      <span class="flabel-on">متابَع</span><span class="flabel-off">إلغاء المتابعة</span>`;
+  } else {
+    btn.className = "btn btn-follow";
+    btn.innerHTML = `<i class="ti ti-user-plus" aria-hidden="true"></i> متابعة`;
+  }
+}
+
+async function toggleFollowProfile() {
+  if (!currentUser || isOwnProfile) return;
+
+  const followersStatEl = document.querySelector("#stat-followers b");
+  const currentCount = parseInt((followersStatEl?.textContent || "0").replace(/,/g, ""), 10) || 0;
+
+  if (isFollowingViewed) {
+    const { error } = await window.sb
+      .from("follows")
+      .delete()
+      .eq("follower_id", currentUser.id)
+      .eq("following_id", viewedUserId);
+
+    if (error) { console.error("Error unfollowing:", error.message); return; }
+
+    isFollowingViewed = false;
+    setStat("stat-followers", Math.max(0, currentCount - 1));
+
+  } else {
+    const { error } = await window.sb
+      .from("follows")
+      .insert({ follower_id: currentUser.id, following_id: viewedUserId });
+
+    if (error) { console.error("Error following:", error.message); return; }
+
+    isFollowingViewed = true;
+    setStat("stat-followers", currentCount + 1);
+  }
+
+  renderFollowButton(document.getElementById("followProfileBtn"));
+}
+
+async function shareProfile() {
+  const url = `${window.location.origin}${window.location.pathname}${viewedUserId ? "?user=" + viewedUserId : ""}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "WorldHub", text: "شاهد هذا الملف الشخصي على WorldHub", url });
+    } catch (e) {
+      // المستخدم ألغى المشاركة
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("تم نسخ رابط الملف الشخصي");
+  } catch (e) {
+    prompt("انسخ رابط الملف الشخصي:", url);
   }
 }
 
@@ -303,7 +441,7 @@ function renderTopPost(post) {
 }
 
 async function loadMyPosts() {
-  if (!currentUser) return;
+  if (!viewedUserId) return;
 
   const postsList = document.getElementById("posts-list");
   const postsCount = document.getElementById("posts-count");
@@ -312,7 +450,7 @@ async function loadMyPosts() {
   const { data, error } = await window.sb
     .from("posts")
     .select("*, likes(count), comments(count)")
-    .eq("user_id", currentUser.id)
+    .eq("user_id", viewedUserId)
     .order("created_at", { ascending: false });
 
   if (error) {
