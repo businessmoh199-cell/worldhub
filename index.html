@@ -785,6 +785,40 @@ async function loadPosts() {
 
 loadPosts();
 </script>
+  
+  async function likePost(postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول");
+    return;
+  }
+
+  const userId = session.user.id;
+
+  const { error } = await window.sb
+    .from("likes")
+    .insert({
+      post_id: postId,
+      user_id: userId
+    });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const button = document.querySelector(
+    `button[onclick="likePost(${postId})"]`
+  );
+
+  if (button) {
+    button.classList.add("liked");
+  }
+}
 </body>
 </html>
 
