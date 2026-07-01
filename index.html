@@ -753,6 +753,11 @@ checkUser();
 <script>
 
 async function checkUser() {
+  if (!window.sb) {
+    console.error("Supabase not loaded");
+    return;
+  }
+
   const {
     data: { session }
   } = await window.sb.auth.getSession();
@@ -795,7 +800,7 @@ async function loadPosts() {
         </div>
 
         <div class="post-actions">
-          <button onclick="likePost(${post.id})">
+          <button onclick="likePost('${post.id}')">
             ❤️ إعجاب
           </button>
         </div>
@@ -839,7 +844,7 @@ async function likePost(postId) {
   }
 
   const button = document.querySelector(
-    `button[onclick="likePost(${postId})"]`
+    `button[onclick="likePost('${postId}')"]`
   );
 
   if (button) {
@@ -849,6 +854,13 @@ async function likePost(postId) {
 
   alert("تم تسجيل الإعجاب بنجاح");
 }
+
+window.addEventListener("load", async () => {
+  await checkUser();
+  await loadPosts();
+});
+
+</script>
 
 checkUser();
 
