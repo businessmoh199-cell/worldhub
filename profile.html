@@ -224,5 +224,48 @@ loadProfile();
   <div id="my-posts">
   <h3>منشوراتي</h3>
 </div>
+
+  ...
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<script>
+
+async function loadMyPosts() {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) return;
+
+  const { data, error } = await window.sb
+    .from("posts")
+    .select("*")
+    .eq("user_id", session.user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  const container = document.getElementById("my-posts");
+
+  data.forEach(post => {
+    container.innerHTML += `
+      <div class="post-card">
+        <p>${post.content}</p>
+        <small>${new Date(post.created_at).toLocaleString()}</small>
+      </div>
+    `;
+  });
+}
+
+loadMyPosts();
+
+</script>
+
 </body>
 </html>
