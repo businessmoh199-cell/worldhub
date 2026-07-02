@@ -50,56 +50,14 @@
 
 /* POSTS */
 .post-card {
-  background: #1a1b24;
-  padding: 20px;
-  margin-top: 15px;
-  border-radius: 14px;
-  border: 1px solid #2a2c38;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; margin-bottom: 12px; transition: border-color 0.2s; cursor: pointer;
 }
-
-.post-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  border-color: #3d4152;
-}
-
-.post-card h3 {
-  margin: 0 0 10px;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: #f2f2f5;
-  line-height: 1.4;
-}
-
-.post-card p {
-  margin-bottom: 14px;
-  color: #c4c6d0;
-  font-size: 0.95rem;
-  line-height: 1.7;
-}
-
-.post-card small {
-  display: inline-block;
-  color: #8a8d99;
-  font-size: 0.8rem;
-  padding-top: 8px;
-  border-top: 1px solid #2a2c38;
-  width: 100%;
-}
-
-/* اختياري: تأثير خفيف على الحواف عند التركيز أو النشاط */
-.post-card:active {
-  transform: translateY(-1px);
-}
-
-/* استجابة للشاشات الصغيرة */
-@media (max-width: 480px) {
-  .post-card {
-    padding: 14px;
-    border-radius: 10px;
-  }
+.post-card:hover { border-color: var(--border2); }
+.post-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.post-avatar {
+  width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0;
 }
 .post-meta { flex: 1; }
 .post-author { font-size: 14px; font-weight: 600; color: var(--text); }

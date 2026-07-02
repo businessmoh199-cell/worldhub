@@ -269,11 +269,12 @@ body {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .sub-grid { grid-template-columns: 1fr; }
 }
-@media (max-width: 640px) {
-  .left-nav { width: 60px; padding: 10px 0; }
-  .nav-icon-item { width: 40px; height: 40px; font-size: 19px; }
-  .left-nav-brand { display: none; }
-}
+/* Note: .left-nav's mobile (<=640px) treatment — turning it into a fixed
+   bottom tab bar — is fully owned by sidebar.css. The old icon-rail rule
+   that used to live here (width:60px + padding:10px 0 + .nav-icon-item,
+   a class no longer used in the markup) was left behind and fought with
+   sidebar.css's bottom-bar layout, squeezing the tab icons up against the
+   top edge instead of centering them. Removed. */
 @media (max-width: 600px) {
   .topbar-search { display: none; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
