@@ -30,11 +30,10 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/main.css?v=20260702c">
-<link rel="stylesheet" href="css/sidebar.css?v=20260702c">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/sidebar.css">
 <link rel="stylesheet" href="css/tabs.css">
 <link rel="stylesheet" href="css/modals.css">
-<link rel="stylesheet" href="css/redesign.css?v=20260702d">
 </head>
 <body>
 
@@ -118,94 +117,83 @@
   </div>
 </div>
 
-<!-- MAIN LAYOUT (3 columns: left nav · main feed · worlds) -->
+<!-- MAIN LAYOUT -->
 <div class="main-layout">
 
-  <!-- LEFT NAV -->
-  <div class="left-nav" id="leftNav">
-    <div class="left-nav-header">
-      <div class="left-nav-logo" onclick="showLanding()" title="WorldHub">🌐</div>
-    </div>
-
-    <div class="left-nav-scroll">
-      <div class="world-item active" id="navHome" title="الرئيسية" onclick="goHome()">
-        <span class="world-emoji">🏠</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_home">الرئيسية</span></span>
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label" data-i18n="my_worlds">My Worlds</div>
+      <div class="world-item active" onclick="openWorld('dev')" id="nav-dev">
+        <span class="world-emoji">💻</span>
+        <span class="world-name" data-i18n="w_programming">Programming</span>
+        <span class="world-badge">12</span>
       </div>
-      <div class="world-item" id="navReels" title="Reels" onclick="goReels()">
-        <span class="world-emoji">🎥</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_reels">Reels</span></span>
+      <div class="world-item" onclick="openWorld('ai')" id="nav-ai">
+        <span class="world-emoji">🤖</span>
+        <span class="world-name" data-i18n="w_ai">AI & ML</span>
       </div>
-      <div class="world-item" id="navMessages" title="الرسائل" onclick="window.location.href='messages.html'">
-        <span class="world-emoji">💬</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_messages">الرسائل</span></span>
-        <span class="row-badge" id="navMsgBadge">3</span>
+      <div class="world-item" onclick="openWorld('design')" id="nav-design">
+        <span class="world-emoji">🎨</span>
+        <span class="world-name" data-i18n="w_design">Design</span>
+        <span class="world-badge">3</span>
       </div>
-      <div class="world-item" id="navSearch" title="البحث" onclick="openSearch()">
-        <span class="world-emoji">🔍</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_search">البحث</span></span>
-      </div>
-      <div class="world-item" id="navNotif" title="الإشعارات" onclick="toggleNotifPanel(event)">
-        <span class="world-emoji">🔔</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_notifications">الإشعارات</span></span>
-        <span class="row-badge" id="navNotifBadge">5</span>
-      </div>
-      <div class="world-item" id="navCreate" title="إنشاء منشور" onclick="showModal('postModal')">
-        <span class="world-emoji create">➕</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_create_post">إنشاء منشور</span></span>
-      </div>
-      <div class="world-item" id="navDashboard" title="لوحة المعلومات" onclick="window.location.href='dashboard.html'">
-        <span class="world-emoji">📊</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_dashboard">لوحة المعلومات</span></span>
-      </div>
-      <div class="world-item" id="navProfile" title="الملف الشخصي" onclick="window.location.href='profile.html'">
-        <span class="world-emoji">👤</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_profile">الملف الشخصي</span></span>
-      </div>
-      <div class="sidebar-divider"></div>
-      <div class="world-item" id="navMore" title="المزيد" onclick="toggleMoreMenu(event)">
-        <span class="world-emoji">☰</span>
-        <span class="world-name-col"><span class="world-name" data-i18n="nav_more">المزيد</span></span>
+      <div class="world-item" onclick="openWorld('biz')" id="nav-biz">
+        <span class="world-emoji">💼</span>
+        <span class="world-name" data-i18n="w_biz">Entrepreneurship</span>
       </div>
     </div>
-
-    <div class="left-nav-footer">
-      <div class="left-nav-brand">Meta<span>5</span></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label" data-i18n="discover_worlds">Discover Worlds</div>
+      <div class="world-item" onclick="openWorld('med')" id="nav-med">
+        <span class="world-emoji">🩺</span>
+        <span class="world-name" data-i18n="w_med">Medicine</span>
+      </div>
+      <div class="world-item" onclick="openWorld('edu')" id="nav-edu">
+        <span class="world-emoji">🎓</span>
+        <span class="world-name" data-i18n="w_edu">Education</span>
+      </div>
+      <div class="world-item" onclick="openWorld('photo')" id="nav-photo">
+        <span class="world-emoji">📷</span>
+        <span class="world-name" data-i18n="w_photo">Photography</span>
+      </div>
+      <div class="world-item" onclick="openWorld('game')" id="nav-game">
+        <span class="world-emoji">🎮</span>
+        <span class="world-name" data-i18n="w_game">Gaming</span>
+      </div>
+      <div class="world-item" onclick="openWorld('finance')" id="nav-finance">
+        <span class="world-emoji">📈</span>
+        <span class="world-name" data-i18n="w_finance">Finance</span>
+      </div>
     </div>
-
-    <!-- Popovers: position:fixed, placed via JS (positionPopover) right next to their
-         trigger row — they float above everything and never shift page layout or get
-         clipped by the scrolling nav list. -->
-    <div class="notif-dropdown" id="notifDropdown">
-      <div class="notif-dropdown-title" data-i18n="notifications">Notifications</div>
-      <div class="notif-item">
-        <div class="notif-item-icon"><i class="ti ti-heart" aria-hidden="true"></i></div>
-        <div class="notif-item-text"><b>Sara Rahman</b> liked your post in World of Programming<div class="notif-item-time">5 min ago</div></div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section" style="padding-bottom:16px">
+      <div class="sidebar-label" data-i18n="quick_actions">Quick Actions</div>
+      <div class="world-item" onclick="window.location.href='create-post.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-square-rounded-plus" style="color:var(--accent2)"></i></span>
+        <span class="world-name" data-i18n="create_post">Create Post</span>
       </div>
-      <div class="notif-item">
-        <div class="notif-item-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div>
-        <div class="notif-item-text"><b>Mokhtar K.</b> commented on your post<div class="notif-item-time">1 hour ago</div></div>
+      <div class="world-item" onclick="window.location.href='messages.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-message-circle-2" style="color:var(--accent2)"></i></span>
+        <span class="world-name" data-i18n="messages">Messages</span>
       </div>
-      <div class="notif-item">
-        <div class="notif-item-icon"><i class="ti ti-user-plus" aria-hidden="true"></i></div>
-        <div class="notif-item-text"><b>Julia P.</b> started following you<div class="notif-item-time">3 hours ago</div></div>
+      <div class="world-item" onclick="showModal('createModal')">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-plus" style="color:var(--accent2)"></i></span>
+        <span class="world-name" data-i18n="create_world">Create World</span>
       </div>
-    </div>
-
-    <div class="more-menu" id="moreMenu">
-      <div class="more-menu-item" onclick="showModal('createModal')"><span class="mi-emoji">🚀</span> <span data-i18n="create_world">Create World</span></div>
-      <div class="more-menu-item" onclick="switchTab('market')"><span class="mi-emoji">🛍️</span> <span data-i18n="tab_market">Marketplace</span></div>
-      <div class="more-menu-item" onclick="switchTab('jobs')"><span class="mi-emoji">💼</span> <span data-i18n="tab_jobs">Jobs</span></div>
-      <div class="more-menu-item" onclick="switchTab('events')"><span class="mi-emoji">📅</span> <span data-i18n="tab_events">Events</span></div>
-      <div class="more-menu-item" onclick="switchTab('voice')"><span class="mi-emoji">🎙️</span> <span data-i18n="tab_voice">Voice Rooms</span></div>
-      <div class="more-menu-item" onclick="switchTab('files')"><span class="mi-emoji">📁</span> <span data-i18n="tab_files">Files</span></div>
-      <div class="more-menu-divider"></div>
-      <div class="more-menu-item" onclick="toggleTheme()"><span class="mi-emoji">🌙</span> <span data-i18n="toggle_theme">Toggle Theme</span></div>
-      <div class="more-menu-item"><span class="mi-emoji">⚙️</span> <span data-i18n="settings">Settings</span></div>
+      <div class="world-item" onclick="window.location.href='profile.html'">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-user" style="color:var(--text3)"></i></span>
+        <span class="world-name" data-i18n="my_profile">My Profile</span>
+      </div>
+      <div class="world-item">
+        <span class="world-emoji" style="font-size:16px"><i class="ti ti-settings" style="color:var(--text3)"></i></span>
+        <span class="world-name" data-i18n="settings">Settings</span>
+      </div>
     </div>
   </div>
 
-  <!-- CONTENT AREA (middle · main feed) -->
+  <!-- CONTENT AREA -->
   <div class="content-area" id="contentArea">
 
     <!-- LANDING PAGE -->
@@ -266,35 +254,51 @@
 
       <!-- TAB: HOME (content lives in pages/home.html) -->
       <div class="tab-panel active" id="tab-home">
-        <div class="feed-column">
-
-          <!-- Composer -->
-          <div class="composer-box" onclick="showModal('postModal')">
-            <div class="composer-avatar">YO</div>
-            <div class="composer-input" data-i18n="whats_on_mind">What do you have in mind?</div>
-            <div class="composer-actions">
-              <div class="composer-action-btn" title="Photo"><i class="ti ti-photo" aria-hidden="true"></i></div>
-              <div class="composer-action-btn" title="Video"><i class="ti ti-video" aria-hidden="true"></i></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="s-members">48.3K</div><div class="stat-sub">+124 today</div></div>
+          <div class="stat-card"><div class="stat-label">Posts Today</div><div class="stat-value">342</div><div class="stat-sub">+18% vs avg</div></div>
+          <div class="stat-card"><div class="stat-label">Online Now</div><div class="stat-value">1.2K</div><div class="stat-sub">Active right now</div></div>
+          <div class="stat-card"><div class="stat-label">Open Jobs</div><div class="stat-value">87</div><div class="stat-sub">12 new this week</div></div>
+        </div>
+        <div style="display:flex;gap:20px">
+          <div style="flex:1;min-width:0">
+            <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab('posts')">See all</div></div>
+            <div id="feed-posts"></div>
+          </div>
+          <div style="width:240px;flex-shrink:0">
+            <div class="section-header"><div class="section-title">Top Companies</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">🚀</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">NovaDev Inc.</div><div style="font-size:11px;color:var(--text3)">14 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">⚡</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">ByteForge</div><div style="font-size:11px;color:var(--text3)">8 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">🧠</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">Synaptic AI</div><div style="font-size:11px;color:var(--text3)">22 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <div class="section-header"><div class="section-title">Upcoming Events</div></div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+                <div style="font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em">JUL 12</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin:4px 0 2px">Flutter World Summit</div>
+                <div style="font-size:12px;color:var(--text3)">Online · 2K attending</div>
+              </div>
             </div>
           </div>
-
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="s-members">48.3K</div><div class="stat-sub">+124 today</div></div>
-            <div class="stat-card"><div class="stat-label">Posts Today</div><div class="stat-value">342</div><div class="stat-sub">+18% vs avg</div></div>
-            <div class="stat-card"><div class="stat-label">Online Now</div><div class="stat-value">1.2K</div><div class="stat-sub">Active right now</div></div>
-            <div class="stat-card"><div class="stat-label">Open Jobs</div><div class="stat-value">87</div><div class="stat-sub">12 new this week</div></div>
-          </div>
-
-          <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab('posts')">See all</div></div>
-          <div id="feed-posts"></div>
-
         </div>
       </div>
 
       <!-- TAB: POSTS -->
       <div class="tab-panel" id="tab-posts">
-        <div class="feed-column">
-        <div style="display:flex;gap:12px;margin-bottom:4px;flex-wrap:wrap">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
           <button class="btn btn-primary" onclick="showModal('postModal')"><i class="ti ti-pencil" aria-hidden="true"></i> New Post</button>
           <button class="btn btn-secondary">All</button>
           <button class="btn btn-ghost">Questions</button>
@@ -347,7 +351,6 @@
               <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i></div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -592,88 +595,6 @@
 
   </div><!-- /contentArea -->
 
-  <!-- RIGHT SIDEBAR — people suggestions, worlds, companies, events, trends -->
-  <div class="sidebar" id="sidebar">
-    <div class="sidebar-scroll">
-
-      <!-- People you may know -->
-      <div class="right-widget">
-        <div class="right-widget-header">
-          <span class="right-widget-title" data-i18n="people_you_may_know">أشخاص قد تعرفهم</span>
-          <span class="right-widget-link" data-i18n="see_all">See all</span>
-        </div>
-        <div class="suggestion-item">
-          <div class="suggestion-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7)">JM</div>
-          <div class="suggestion-text"><div class="suggestion-name">John Michael</div><div class="suggestion-sub">550K Following</div></div>
-          <button class="follow-btn">Follow</button>
-        </div>
-        <div class="suggestion-item">
-          <div class="suggestion-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9)">MP</div>
-          <div class="suggestion-text"><div class="suggestion-name">Monroe Parker</div><div class="suggestion-sub">350K Following</div></div>
-          <button class="follow-btn">Follow</button>
-        </div>
-        <div class="suggestion-item">
-          <div class="suggestion-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">JL</div>
-          <div class="suggestion-text"><div class="suggestion-name">James Lewis</div><div class="suggestion-sub">200K Following</div></div>
-          <button class="follow-btn">Follow</button>
-        </div>
-        <div class="suggestion-item">
-          <div class="suggestion-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899)">AS</div>
-          <div class="suggestion-text"><div class="suggestion-name">Alexa Stella</div><div class="suggestion-sub">120K Following</div></div>
-          <button class="follow-btn">Follow</button>
-        </div>
-      </div>
-
-      <!-- Worlds (populated by worlds.js into #worldsList) -->
-      <div class="right-widget">
-        <div class="right-widget-header">
-          <span class="right-widget-title">🌐 <span data-i18n="worlds">Worlds</span></span>
-        </div>
-        <div id="worldsList"><!-- populated by worlds.js --></div>
-      </div>
-
-      <!-- Top companies -->
-      <div class="right-widget">
-        <div class="right-widget-header"><span class="right-widget-title" data-i18n="top_companies">أفضل الشركات</span></div>
-        <div class="company-item">
-          <div class="company-icon">🚀</div>
-          <div><div class="company-name">NovaDev Inc.</div><div class="company-sub">14 open positions</div></div>
-          <button class="follow-btn" style="margin-left:auto">Follow</button>
-        </div>
-        <div class="company-item">
-          <div class="company-icon">⚡</div>
-          <div><div class="company-name">ByteForge</div><div class="company-sub">8 open positions</div></div>
-          <button class="follow-btn" style="margin-left:auto">Follow</button>
-        </div>
-        <div class="company-item">
-          <div class="company-icon">🧠</div>
-          <div><div class="company-name">Synaptic AI</div><div class="company-sub">22 open positions</div></div>
-          <button class="follow-btn" style="margin-left:auto">Follow</button>
-        </div>
-      </div>
-
-      <!-- Upcoming events -->
-      <div class="right-widget">
-        <div class="right-widget-header"><span class="right-widget-title" data-i18n="upcoming_events">الأحداث القادمة</span></div>
-        <div class="event-item">
-          <div class="event-date">JUL 12</div>
-          <div class="event-title">Flutter World Summit</div>
-          <div class="event-sub">Online · 2K attending</div>
-        </div>
-      </div>
-
-      <!-- Trending topics -->
-      <div class="right-widget">
-        <div class="right-widget-header"><span class="right-widget-title" data-i18n="trending_topics">المواضيع الرائجة</span></div>
-        <div class="trend-item"><div class="trend-topic">Artificial Intelligence</div><div class="trend-count">124.6K posts</div></div>
-        <div class="trend-item"><div class="trend-topic">Web Developers</div><div class="trend-count">92.6K posts</div></div>
-        <div class="trend-item"><div class="trend-topic">UI Designers</div><div class="trend-count">65.9K posts</div></div>
-        <div class="trend-item"><div class="trend-topic">Affiliate Marketing</div><div class="trend-count">40.6K posts</div></div>
-      </div>
-
-    </div>
-  </div>
-
 </div><!-- /mainLayout -->
 
 <!-- MODALS -->
@@ -808,8 +729,8 @@
 <script src="js/supabase.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/theme.js"></script>
-<script src="js/worlds.js?v=20260702c"></script>
-<script src="js/app.js?v=20260702c"></script>
+<script src="js/worlds.js"></script>
+<script src="js/app.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/ai.js"></script>
 
