@@ -115,4 +115,11 @@ function goReels() {
   switchTab('reels');
 }
 
+// Render immediately: this script tag is placed after #worldsList in the DOM,
+// so the element already exists by the time this file executes — no need to
+// wait for DOMContentLoaded (and waiting was the bug: on some load orders the
+// event had already fired by the time the listener was attached, leaving the
+// right-hand Worlds column empty). Keep the listener too as a harmless safety net.
+renderWorldsSidebar();
 document.addEventListener('DOMContentLoaded', renderWorldsSidebar);
+window.addEventListener('load', renderWorldsSidebar);
