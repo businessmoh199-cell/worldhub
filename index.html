@@ -117,58 +117,90 @@
   </div>
 </div>
 
-<!-- MAIN LAYOUT (3 columns: left icon-nav · main feed · worlds) -->
+<!-- MAIN LAYOUT (3 columns: left nav · main feed · worlds) -->
 <div class="main-layout">
 
-  <!-- LEFT NAV (icon rail) -->
+  <!-- LEFT NAV -->
   <div class="left-nav" id="leftNav">
-    <div class="left-nav-icons">
-      <div class="nav-icon-item active" id="navHome" data-tip="الرئيسية" onclick="goHome()"><i class="ti ti-home" aria-hidden="true"></i></div>
-      <div class="nav-icon-item" id="navReels" data-tip="Reels" onclick="goReels()"><i class="ti ti-player-play" aria-hidden="true"></i></div>
-      <div class="nav-icon-item" id="navMessages" data-tip="الرسائل" onclick="window.location.href='messages.html'">
-        <i class="ti ti-message-circle-2" aria-hidden="true"></i>
-        <span class="nav-badge" id="navMsgBadge">3</span>
-      </div>
-      <div class="nav-icon-item" id="navSearch" data-tip="البحث" onclick="openSearch()"><i class="ti ti-search" aria-hidden="true"></i></div>
-      <div class="nav-icon-item" id="navNotif" data-tip="الإشعارات" onclick="toggleNotifPanel()" style="position:relative">
-        <i class="ti ti-bell" aria-hidden="true"></i>
-        <span class="nav-badge" id="navNotifBadge">5</span>
-        <div class="notif-dropdown" id="notifDropdown">
-          <div class="notif-dropdown-title" data-i18n="notifications">Notifications</div>
-          <div class="notif-item">
-            <div class="notif-item-icon"><i class="ti ti-heart" aria-hidden="true"></i></div>
-            <div class="notif-item-text"><b>Sara Rahman</b> liked your post in World of Programming<div class="notif-item-time">5 min ago</div></div>
-          </div>
-          <div class="notif-item">
-            <div class="notif-item-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div>
-            <div class="notif-item-text"><b>Mokhtar K.</b> commented on your post<div class="notif-item-time">1 hour ago</div></div>
-          </div>
-          <div class="notif-item">
-            <div class="notif-item-icon"><i class="ti ti-user-plus" aria-hidden="true"></i></div>
-            <div class="notif-item-text"><b>Julia P.</b> started following you<div class="notif-item-time">3 hours ago</div></div>
-          </div>
-        </div>
-      </div>
-      <div class="nav-icon-item create" id="navCreate" data-tip="إنشاء منشور" onclick="showModal('postModal')"><i class="ti ti-square-rounded-plus" aria-hidden="true"></i></div>
-      <div class="nav-icon-item" id="navDashboard" data-tip="لوحة المعلومات" onclick="window.location.href='dashboard.html'"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></div>
-      <div class="nav-icon-item" id="navProfile" data-tip="الملف الشخصي" onclick="window.location.href='profile.html'"><i class="ti ti-user" aria-hidden="true"></i></div>
+    <div class="left-nav-header">
+      <div class="left-nav-logo" onclick="showLanding()" title="WorldHub">🌐</div>
     </div>
-    <div class="left-nav-bottom">
-      <div class="nav-icon-item" id="navMore" data-tip="المزيد" onclick="toggleMoreMenu()" style="position:relative">
-        <i class="ti ti-menu-2" aria-hidden="true"></i>
-        <div class="more-menu" id="moreMenu">
-          <div class="more-menu-item" onclick="showModal('createModal')"><i class="ti ti-rocket" aria-hidden="true"></i> <span data-i18n="create_world">Create World</span></div>
-          <div class="more-menu-item" onclick="switchTab('market')"><i class="ti ti-shopping-bag" aria-hidden="true"></i> <span data-i18n="tab_market">Marketplace</span></div>
-          <div class="more-menu-item" onclick="switchTab('jobs')"><i class="ti ti-briefcase" aria-hidden="true"></i> <span data-i18n="tab_jobs">Jobs</span></div>
-          <div class="more-menu-item" onclick="switchTab('events')"><i class="ti ti-calendar" aria-hidden="true"></i> <span data-i18n="tab_events">Events</span></div>
-          <div class="more-menu-item" onclick="switchTab('voice')"><i class="ti ti-microphone" aria-hidden="true"></i> <span data-i18n="tab_voice">Voice Rooms</span></div>
-          <div class="more-menu-item" onclick="switchTab('files')"><i class="ti ti-folder" aria-hidden="true"></i> <span data-i18n="tab_files">Files</span></div>
-          <div class="more-menu-divider"></div>
-          <div class="more-menu-item" onclick="toggleTheme()"><i class="ti ti-moon" aria-hidden="true"></i> <span data-i18n="toggle_theme">Toggle Theme</span></div>
-          <div class="more-menu-item"><i class="ti ti-settings" aria-hidden="true"></i> <span data-i18n="settings">Settings</span></div>
-        </div>
+
+    <div class="left-nav-scroll">
+      <div class="world-item active" id="navHome" title="الرئيسية" onclick="goHome()">
+        <span class="world-emoji">🏠</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_home">الرئيسية</span></span>
       </div>
+      <div class="world-item" id="navReels" title="Reels" onclick="goReels()">
+        <span class="world-emoji">🎥</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_reels">Reels</span></span>
+      </div>
+      <div class="world-item" id="navMessages" title="الرسائل" onclick="window.location.href='messages.html'">
+        <span class="world-emoji">💬</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_messages">الرسائل</span></span>
+        <span class="row-badge" id="navMsgBadge">3</span>
+      </div>
+      <div class="world-item" id="navSearch" title="البحث" onclick="openSearch()">
+        <span class="world-emoji">🔍</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_search">البحث</span></span>
+      </div>
+      <div class="world-item" id="navNotif" title="الإشعارات" onclick="toggleNotifPanel(event)">
+        <span class="world-emoji">🔔</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_notifications">الإشعارات</span></span>
+        <span class="row-badge" id="navNotifBadge">5</span>
+      </div>
+      <div class="world-item" id="navCreate" title="إنشاء منشور" onclick="showModal('postModal')">
+        <span class="world-emoji create">➕</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_create_post">إنشاء منشور</span></span>
+      </div>
+      <div class="world-item" id="navDashboard" title="لوحة المعلومات" onclick="window.location.href='dashboard.html'">
+        <span class="world-emoji">📊</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_dashboard">لوحة المعلومات</span></span>
+      </div>
+      <div class="world-item" id="navProfile" title="الملف الشخصي" onclick="window.location.href='profile.html'">
+        <span class="world-emoji">👤</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_profile">الملف الشخصي</span></span>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="world-item" id="navMore" title="المزيد" onclick="toggleMoreMenu(event)">
+        <span class="world-emoji">☰</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_more">المزيد</span></span>
+      </div>
+    </div>
+
+    <div class="left-nav-footer">
       <div class="left-nav-brand">Meta<span>5</span></div>
+    </div>
+
+    <!-- Popovers: position:fixed, placed via JS (positionPopover) right next to their
+         trigger row — they float above everything and never shift page layout or get
+         clipped by the scrolling nav list. -->
+    <div class="notif-dropdown" id="notifDropdown">
+      <div class="notif-dropdown-title" data-i18n="notifications">Notifications</div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-heart" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Sara Rahman</b> liked your post in World of Programming<div class="notif-item-time">5 min ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Mokhtar K.</b> commented on your post<div class="notif-item-time">1 hour ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-user-plus" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Julia P.</b> started following you<div class="notif-item-time">3 hours ago</div></div>
+      </div>
+    </div>
+
+    <div class="more-menu" id="moreMenu">
+      <div class="more-menu-item" onclick="showModal('createModal')"><span class="mi-emoji">🚀</span> <span data-i18n="create_world">Create World</span></div>
+      <div class="more-menu-item" onclick="switchTab('market')"><span class="mi-emoji">🛍️</span> <span data-i18n="tab_market">Marketplace</span></div>
+      <div class="more-menu-item" onclick="switchTab('jobs')"><span class="mi-emoji">💼</span> <span data-i18n="tab_jobs">Jobs</span></div>
+      <div class="more-menu-item" onclick="switchTab('events')"><span class="mi-emoji">📅</span> <span data-i18n="tab_events">Events</span></div>
+      <div class="more-menu-item" onclick="switchTab('voice')"><span class="mi-emoji">🎙️</span> <span data-i18n="tab_voice">Voice Rooms</span></div>
+      <div class="more-menu-item" onclick="switchTab('files')"><span class="mi-emoji">📁</span> <span data-i18n="tab_files">Files</span></div>
+      <div class="more-menu-divider"></div>
+      <div class="more-menu-item" onclick="toggleTheme()"><span class="mi-emoji">🌙</span> <span data-i18n="toggle_theme">Toggle Theme</span></div>
+      <div class="more-menu-item"><span class="mi-emoji">⚙️</span> <span data-i18n="settings">Settings</span></div>
     </div>
   </div>
 
@@ -576,24 +608,10 @@
 
   <!-- WORLDS SIDEBAR (right) -->
   <div class="sidebar" id="sidebar">
-    <div class="sidebar-section">
-      <div class="sidebar-section-head">
-        <div class="sidebar-label" data-i18n="my_worlds">My Worlds</div>
-      </div>
-      <div id="myWorldsList"><!-- populated by worlds.js --></div>
+    <div class="sidebar-header">
+      <span>🌐</span> <span data-i18n="worlds">Worlds</span>
     </div>
-    <div class="sidebar-divider"></div>
-    <div class="sidebar-section">
-      <div class="sidebar-section-head">
-        <div class="sidebar-label" data-i18n="discover_worlds">Discover Worlds</div>
-        <div class="sidebar-add-btn" title="Create a World" onclick="showModal('createModal')"><i class="ti ti-plus" aria-hidden="true"></i></div>
-      </div>
-      <div id="discoverWorldsList"><!-- populated by worlds.js --></div>
-    </div>
-    <div class="sidebar-divider"></div>
-    <div class="discover-cta" onclick="showModal('createModal')">
-      <i class="ti ti-world" aria-hidden="true"></i> <span data-i18n="discover_new_worlds">Discover new worlds</span>
-    </div>
+    <div class="sidebar-scroll" id="worldsList"><!-- populated by worlds.js --></div>
   </div>
 
 </div><!-- /mainLayout -->

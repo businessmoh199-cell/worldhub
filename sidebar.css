@@ -1,0 +1,264 @@
+/* ===================== SIDEBAR.CSS ===================== */
+/* LEFT NAV (Instagram/X/LinkedIn-style list) + RIGHT WORLDS   */
+/* Both columns: fixed shell, independent inner scroll,        */
+/* popovers use position:fixed (JS-placed) so nothing reflows. */
+
+/* -------------------------------------------------------- */
+/* SHARED ROW COMPONENT — used identically by both columns   */
+/* -------------------------------------------------------- */
+.world-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius);
+  cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s;
+  color: var(--text2);
+  font-size: 14.5px;
+  border: 1px solid transparent;
+  position: relative;
+}
+.world-item:hover { background: var(--bg3); color: var(--text); }
+.world-item:active { transform: scale(0.98); }
+.world-item.active {
+  background: var(--accentBg); color: var(--accent2);
+  border-color: var(--accentBorder);
+}
+.world-item.active .world-name { font-weight: 700; }
+.world-emoji {
+  font-size: 19px; width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg3); border-radius: 10px;
+  transition: background 0.15s;
+}
+.world-item.active .world-emoji { background: var(--bg4); }
+.world-item:hover .world-emoji { background: var(--bg4); }
+.world-emoji.create { background: linear-gradient(135deg, var(--accent), #a855f7); }
+.world-name-col { flex: 1; min-width: 0; }
+.world-name { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.world-item:not(.active) .world-name { color: var(--text2); }
+.world-item:hover .world-name { color: var(--text); }
+.world-sub { font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+.world-item.active .world-sub { color: var(--accent2); opacity: 0.8; }
+.world-badge {
+  font-size: 10.5px; font-weight: 700; background: var(--accent);
+  color: #fff; border-radius: 10px; padding: 1px 7px; min-width: 18px;
+  text-align: center; flex-shrink: 0;
+}
+.sidebar-divider { height: 1px; background: var(--border); margin: 10px 14px; flex-shrink: 0; }
+
+/* -------------------------------------------------------- */
+/* LEFT NAV — fixed shell + scrollable list + pinned footer  */
+/* -------------------------------------------------------- */
+.left-nav {
+  width: var(--leftnav-w, 260px);
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0; /* allow inner flex child to scroll instead of overflowing */
+  position: relative; /* containing block for CSS-only fallbacks */
+}
+.left-nav-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 16px 8px; flex-shrink: 0;
+}
+.left-nav-logo {
+  font-size: 22px; cursor: pointer; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.left-nav-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.left-nav-scroll::-webkit-scrollbar { width: 4px; }
+.left-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+.left-nav-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.left-nav-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.left-nav-brand {
+  font-family: var(--fontDisplay);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  letter-spacing: 0.02em;
+}
+.left-nav-brand span { color: var(--accent2); }
+
+/* -------------------------------------------------------- */
+/* POPOVERS (More menu / Notifications)                      */
+/* Positioned with position:fixed and placed via JS          */
+/* (see app.js positionPopover) — never affects page layout, */
+/* never gets clipped by the scrolling nav list.              */
+/* -------------------------------------------------------- */
+.more-menu, .notif-dropdown {
+  position: fixed;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 8px;
+  display: none;
+  box-shadow: var(--shadow);
+  z-index: 400;
+}
+.more-menu.open, .notif-dropdown.open { display: block; }
+.more-menu { min-width: 210px; }
+.notif-dropdown { width: 300px; }
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.more-menu-item i, .more-menu-item .mi-emoji { font-size: 17px; width: 18px; text-align: center; flex-shrink: 0; }
+.more-menu-item i { color: var(--text3); }
+.more-menu-item:hover { background: var(--bg3); color: var(--text); }
+.more-menu-item:hover i { color: var(--accent2); }
+.more-menu-divider { height: 1px; background: var(--border); margin: 6px 4px; }
+
+.notif-dropdown-title { font-size: 13.5px; font-weight: 700; color: var(--text); padding: 6px 8px 10px; }
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notif-item:hover { background: var(--bg3); }
+.notif-item-icon {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accentBg); color: var(--accent2); font-size: 15px;
+}
+.notif-item-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.notif-item-text b { color: var(--text); }
+.notif-item-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* small badge shown inline inside a nav row (Messages / Notifications rows) */
+.row-badge {
+  margin-left: auto;
+  font-size: 10.5px; font-weight: 700; background: var(--red);
+  color: #fff; border-radius: 10px; padding: 1px 7px; min-width: 18px;
+  text-align: center; flex-shrink: 0;
+}
+.row-badge:empty, .row-badge[data-count="0"] { display: none; }
+
+/* -------------------------------------------------------- */
+/* RIGHT COLUMN — Worlds                                      */
+/* (keeps the original .sidebar class name so other pages     */
+/*  that share sidebar.css keep working unchanged)             */
+/* -------------------------------------------------------- */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.sidebar-header {
+  padding: 14px 16px 6px; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Discover worlds CTA — final row in the list, visually distinct */
+.discover-cta {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius);
+  border: 1px dashed var(--border2);
+  color: var(--accent2); font-size: 14.5px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  margin-top: 4px;
+}
+.discover-cta:hover { border-color: var(--accentBorder); background: var(--accentBg); }
+.discover-cta .world-emoji { background: transparent; font-size: 19px; width: auto; height: auto; }
+
+/* -------------------------------------------------------- */
+/* RESPONSIVE                                                 */
+/* -------------------------------------------------------- */
+
+/* Tablet: right Worlds column hidden, left nav still full list */
+@media (max-width: 1180px) {
+  .sidebar { display: none; }
+}
+
+/* Small tablet / large phone: collapse left nav to icon-only rail */
+@media (max-width: 900px) {
+  .left-nav { width: 76px; }
+  .left-nav-header { justify-content: center; padding: 14px 0 8px; }
+  .left-nav .world-name-col, .left-nav .world-sub, .left-nav .world-badge { display: none; }
+  .left-nav .world-item { justify-content: center; padding: 12px; }
+  .left-nav-footer { justify-content: center; }
+  .left-nav-brand { display: none; }
+}
+
+/* Phone: left nav becomes a fixed bottom tab bar (Instagram/X style) */
+@media (max-width: 640px) {
+  .left-nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 150;
+  }
+  .left-nav-header { display: none; }
+  .left-nav-footer { display: none; }
+  .left-nav-scroll {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 6px;
+    gap: 2px;
+  }
+  .left-nav .sidebar-divider { display: none; }
+  .left-nav .world-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 10px;
+    min-width: 56px;
+    flex-shrink: 0;
+  }
+  .left-nav .world-emoji { width: 24px; height: 24px; font-size: 17px; background: transparent; }
+  .left-nav .world-item.active .world-emoji,
+  .left-nav .world-item:hover .world-emoji { background: transparent; }
+  /* content must not sit under the fixed bottom bar */
+  .content-area { padding-bottom: 72px; }
+}
