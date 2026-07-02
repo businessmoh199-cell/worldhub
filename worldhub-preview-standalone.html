@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WorldHub — Connect by Passion | Professional Communities Network</title>
+<meta name="description" content="WorldHub is a social platform connecting professionals by passion: programming, design, medicine, business and more. Posts, marketplace, jobs, voice rooms, reels and AI assistant in every world.">
+<meta name="keywords" content="WorldHub, professional network, communities, marketplace, jobs, programming, AI, social network">
+<meta name="author" content="WorldHub">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://worldhub.app/">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="WorldHub — Connect by Passion">
+<meta property="og:description" content="Specialized communities built for your profession. Posts, marketplace, jobs, voice rooms — everything your field needs.">
+<meta property="og:image" content="https://worldhub.app/assets/og-cover.jpg">
+<meta property="og:url" content="https://worldhub.app/">
+<meta property="og:site_name" content="WorldHub">
+<meta property="og:locale" content="en_US">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="WorldHub — Connect by Passion">
+<meta name="twitter:description" content="Specialized communities built for your profession.">
+<meta name="twitter:image" content="https://worldhub.app/assets/og-cover.jpg">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌐</text></svg>">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== main.css ===== */
+/* ===================== MAIN.CSS ===================== */
+/* Root variables, reset, topbar, buttons, misc/shared  */
+
+:root {
+  --bg: #0a0a0f;
+  --bg2: #111118;
+  --bg3: #16161f;
+  --bg4: #1c1c28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #f0f0f5;
+  --text2: #9090a8;
+  --text3: #5a5a70;
+  --accent: #6c63ff;
+  --accent2: #8b83ff;
+  --accentBg: rgba(108,99,255,0.12);
+  --accentBorder: rgba(108,99,255,0.3);
+  --green: #22c55e;
+  --greenBg: rgba(34,197,94,0.1);
+  --amber: #f59e0b;
+  --amberBg: rgba(245,158,11,0.1);
+  --red: #ef4444;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --font: 'Inter', sans-serif;
+  --fontDisplay: 'Space Grotesk', sans-serif;
+  --sidebar-w: 280px;
+  --topbar-h: 64px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+
+/* LIGHT THEME OVERRIDES */
+:root[data-theme="light"] {
+  --bg: #f5f5f9;
+  --bg2: #ffffff;
+  --bg3: #f0f0f5;
+  --bg4: #e8e8f0;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --text: #18181f;
+  --text2: #55556a;
+  --text3: #8a8a9a;
+  --accentBg: rgba(108,99,255,0.08);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  transition: background 0.2s, color 0.2s;
+}
+
+/* TOP BAR */
+.topbar {
+  height: var(--topbar-h);
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.logo {
+  font-family: var(--fontDisplay);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent2);
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+.logo span { color: var(--text3); font-weight: 400; font-size: 14px; margin-left: 6px; }
+.topbar-search {
+  flex: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+}
+.topbar-search input {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 16px 9px 40px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.topbar-search input:focus { border-color: var(--accentBorder); }
+.topbar-search input::placeholder { color: var(--text3); }
+.topbar-search .si {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: 17px; pointer-events: none;
+}
+.topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.lang-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  padding: 6px 12px; color: var(--text2); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 6px; transition: border-color 0.2s;
+}
+.lang-btn:hover { border-color: var(--border2); color: var(--text); }
+.notif-btn, .avatar-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--bg3); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2); font-size: 18px; transition: all 0.2s;
+}
+.notif-btn:hover, .avatar-btn:hover { border-color: var(--accentBorder); color: var(--accent2); }
+.avatar-btn {
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  border-color: transparent; color: #fff; font-size: 13px; font-weight: 600;
+}
+
+/* MAIN LAYOUT */
+.main-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* CONTENT AREA */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.content-area::-webkit-scrollbar { width: 6px; }
+.content-area::-webkit-scrollbar-track { background: transparent; }
+.content-area::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+/* BUTTONS */
+.btn {
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; border: none; font-family: var(--font);
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--border2); background: var(--bg4); }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+/* MISC SHARED */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.section-link { font-size: 13px; color: var(--accent2); cursor: pointer; transition: color 0.15s; }
+.section-link:hover { color: var(--text); }
+
+.tag {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text3);
+}
+
+/* LOADING / TYPING */
+.typing { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+.typing-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent2);
+  animation: pulse 1s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes pulse { 0%,100% { opacity: 0.3; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1); } }
+
+/* LANG DROPDOWN */
+.lang-dropdown {
+  position: absolute; top: 54px; right: 16px; background: var(--bg2);
+  border: 1px solid var(--border2); border-radius: 10px; padding: 6px;
+  display: none; min-width: 140px; z-index: 200; box-shadow: var(--shadow);
+}
+.lang-dropdown.open { display: block; }
+.lang-option {
+  padding: 8px 12px; border-radius: 6px; font-size: 13px; cursor: pointer;
+  color: var(--text2); transition: all 0.15s; display: flex; align-items: center; gap: 8px;
+}
+.lang-option:hover { background: var(--bg3); color: var(--text); }
+.lang-option.active { color: var(--accent2); background: var(--accentBg); }
+
+/* SEARCH OVERLAY */
+.search-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: none; align-items: start; justify-content: center;
+  padding-top: 80px; z-index: 500;
+}
+.search-overlay.open { display: flex; }
+.search-box {
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-lg);
+  padding: 20px; width: 560px; max-width: 90%;
+}
+.search-input-wrap { position: relative; margin-bottom: 16px; }
+.search-input-wrap input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--accentBorder);
+  border-radius: 10px; padding: 12px 16px 12px 44px; color: var(--text);
+  font-size: 16px; font-family: var(--font); outline: none;
+}
+.search-results { display: flex; flex-direction: column; gap: 8px; }
+.search-result {
+  padding: 10px 14px; border-radius: 8px; background: var(--bg3);
+  border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 10px;
+}
+.search-result:hover { border-color: var(--accentBorder); background: var(--accentBg); }
+.search-result-text { flex: 1; }
+.search-result-title { font-size: 14px; font-weight: 500; color: var(--text); }
+.search-result-sub { font-size: 12px; color: var(--text3); }
+
+/* LIVE BADGE */
+.live-badge {
+  background: rgba(239,68,68,0.15); color: var(--red);
+  border: 1px solid rgba(239,68,68,0.3); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em; padding: 2px 8px; border-radius: 20px; text-transform: uppercase;
+}
+
+/* FILES */
+.files-list { display: flex; flex-direction: column; gap: 10px; }
+.file-item {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.file-item:hover { border-color: var(--border2); }
+.file-icon {
+  width: 40px; height: 40px; border-radius: 8px; background: var(--bg3);
+  border: 1px solid var(--border); display: flex; align-items: center;
+  justify-content: center; font-size: 20px; flex-shrink: 0;
+}
+.file-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.file-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.file-size { font-size: 12px; color: var(--text3); margin-left: auto; }
+
+/* REELS */
+.reels-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.reel-card {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius);
+  aspect-ratio: 9/16; display: flex; flex-direction: column; justify-content: end;
+  padding: 12px; cursor: pointer; transition: border-color 0.2s; position: relative;
+  overflow: hidden;
+}
+.reel-card:hover { border-color: var(--accentBorder); }
+.reel-emoji { font-size: 48px; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-60%); }
+.reel-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 44px; height: 44px; border-radius: 50%; background: rgba(108,99,255,0.8);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 20px; opacity: 0; transition: opacity 0.2s;
+}
+.reel-card:hover .reel-play { opacity: 1; }
+.reel-title { font-size: 12px; font-weight: 600; color: #fff; position: relative; z-index: 1; }
+.reel-views { font-size: 11px; color: rgba(255,255,255,0.6); position: relative; z-index: 1; }
+.reel-gradient {
+  position: absolute; inset: 0;
+  background: linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.8));
+}
+
+/* RESPONSIVE */
+@media (max-width: 1180px) {
+  .sidebar { display: none; } /* right-hand Worlds column */
+}
+@media (max-width: 900px) {
+  .ai-panel { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .sub-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .left-nav { width: 60px; padding: 10px 0; }
+  .nav-icon-item { width: 40px; height: 40px; font-size: 19px; }
+  .left-nav-brand { display: none; }
+}
+@media (max-width: 600px) {
+  .topbar-search { display: none; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .world-header { padding: 16px 16px 0; }
+  .tab-panel { padding: 16px; }
+}
+
+/* ===================== POST ACTIONS (LIKE / COMMENT / SHARE) ===================== */
+.post-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Shared base — pill-shaped, background visible at rest (not just on hover) */
+.post-actions button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 15px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease,
+              transform 0.12s ease, box-shadow 0.15s ease;
+}
+.post-actions button i {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+.post-actions button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+.post-actions button:active {
+  transform: scale(0.94) translateY(0);
+  box-shadow: none;
+}
+
+/* LIKE BUTTON — muted red tint at rest, solid fill once liked */
+.like-btn {
+  color: #f87171;
+  background: rgba(239,68,68,0.08);
+  border-color: rgba(239,68,68,0.18);
+}
+.like-btn i { color: #f87171; }
+.like-btn:hover {
+  background: rgba(239,68,68,0.16);
+  border-color: rgba(239,68,68,0.35);
+}
+.like-btn.liked {
+  color: #fff;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  border-color: transparent;
+  box-shadow: 0 3px 10px rgba(239,68,68,0.35);
+}
+.like-btn.liked i { color: #fff; }
+.like-btn.liked:hover {
+  box-shadow: 0 5px 14px rgba(239,68,68,0.45);
+}
+.like-btn.liked i {
+  animation: like-pop 0.32s ease;
+}
+@keyframes like-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.4) rotate(-8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* COMMENT BUTTON — accent tint */
+.comment-btn {
+  color: var(--accent2);
+  background: var(--accentBg);
+  border-color: var(--accentBorder);
+}
+.comment-btn i { color: var(--accent2); }
+.comment-btn:hover {
+  background: rgba(108,99,255,0.2);
+  border-color: var(--accent2);
+}
+
+/* SHARE BUTTON — neutral, pinned to the end */
+.share-btn {
+  margin-left: auto;
+  color: var(--text2);
+  background: var(--bg4);
+  border-color: var(--border2);
+}
+.share-btn i { color: var(--text3); }
+.share-btn:hover {
+  color: var(--text);
+  background: var(--bg3);
+  border-color: var(--accentBorder);
+}
+.share-btn:hover i {
+  color: var(--accent2);
+  transform: translateX(-2px);
+}
+
+/* COUNTS */
+.likes-count,
+.comments-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: inherit;
+}
+
+
+/* ===================== COMMENTS ===================== */
+.comments-box {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.comments-list::-webkit-scrollbar { width: 5px; }
+.comments-list::-webkit-scrollbar-track { background: transparent; }
+.comments-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.comments-empty, .comments-loading {
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* -------- Single comment -------- */
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+.comment-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(108,99,255,0.25);
+}
+.comment-content {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 13px;
+  flex: 1;
+  min-width: 0;
+  transition: border-color 0.15s ease;
+}
+.comment-content:hover {
+  border-color: var(--border2);
+}
+
+.comment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.comment-author i { font-size: 15px; color: var(--accent2); }
+.comment-time {
+  font-size: 11px;
+  color: var(--text3);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.comment-text {
+  font-size: 13.5px;
+  color: var(--text2);
+  margin-top: 6px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+/* -------- Mini action row: like / reply / edit / delete -------- */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.comment-actions button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.comment-actions button i { font-size: 14px; }
+
+.reply-like-btn:hover { color: var(--red); }
+.reply-like-btn.liked { color: var(--red); }
+.reply-like-btn.liked i { animation: like-pop 0.32s ease; }
+
+.reply-btn:hover { color: var(--accent2); }
+.edit-comment-btn:hover { color: var(--amber); }
+.delete-comment-btn:hover { color: var(--red); }
+
+/* -------- Reply input (inline, per comment) -------- */
+.reply-input-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.reply-input-box input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.reply-input-box input:focus { border-color: var(--accentBorder); }
+.reply-input-box input::placeholder { color: var(--text3); }
+.reply-input-box button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+.reply-input-box button:hover { background: var(--accent2); }
+
+/* -------- Inline edit box -------- */
+.comment-edit-box {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.comment-edit-box input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--accentBorder);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+}
+.comment-edit-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.comment-edit-actions button {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+.save-edit-btn { background: var(--greenBg); color: var(--green); }
+.save-edit-btn:hover { background: var(--green); color: #fff; }
+.cancel-edit-btn { background: var(--bg4); color: var(--text3); }
+.cancel-edit-btn:hover { background: var(--bg4); color: var(--text); }
+
+/* -------- Threaded replies -------- */
+.comment-replies {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.comment-replies:not(:empty) {
+  margin-top: 10px;
+  padding-inline-start: 14px;
+  border-inline-start: 2px solid var(--border);
+}
+.comment-replies .comment-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+.comment-replies .comment-content {
+  padding: 8px 11px;
+}
+
+/* -------- New top-level comment input -------- */
+.comment-input {
+  display: flex;
+  gap: 8px;
+}
+.comment-input input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.comment-input input:focus { border-color: var(--accentBorder); }
+.comment-input input::placeholder { color: var(--text3); }
+.comment-input button {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.comment-input button:hover { background: var(--accent2); }
+
+/* ===================== FOLLOW BUTTON ===================== */
+.btn-follow {
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  color: #fff;
+  border: 1px solid transparent;
+}
+.btn-follow:hover { filter: brightness(1.1); box-shadow: 0 4px 14px rgba(108,99,255,0.35); }
+.btn-follow:active { transform: scale(0.96); }
+
+.btn-following {
+  background: var(--bg3); color: var(--text2); border: 1px solid var(--border);
+}
+.btn-following:hover {
+  background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.3);
+}
+.btn-following:active { transform: scale(0.96); }
+
+/* label / icon swap on hover: "متابَع" -> "إلغاء المتابعة" */
+.btn-following .flabel-off,
+.btn-following .ficon-off { display: none; }
+.btn-following:hover .flabel-on,
+.btn-following:hover .ficon-on { display: none; }
+.btn-following:hover .flabel-off,
+.btn-following:hover .ficon-off { display: inline-flex; }
+
+/* compact variant used inline inside post headers */
+.follow-btn-sm { padding: 6px 13px; font-size: 12px; border-radius: 20px; font-weight: 600; }
+.follow-btn-sm i { font-size: 14px; }
+
+/* clickable author name / avatar (feed + profile) */
+.post-author-link, .post-avatar-link { cursor: pointer; }
+.post-author-link:hover { color: var(--accent2); text-decoration: underline; }
+.post-avatar-link:hover { filter: brightness(1.15); }
+
+/* profile page: follower / following stat pair wraps cleanly */
+.profile-stat { cursor: default; }
+
+/* subtle pulse when a stat value updates live (follow/unfollow, new post, etc.) */
+@keyframes statPulse {
+  0%   { transform: scale(1.22); color: var(--accent2); }
+  100% { transform: scale(1); color: var(--text); }
+}
+.profile-stat b.stat-pulse { animation: statPulse 0.4s ease; display: inline-block; }
+
+/* disabled state shared by all .btn variants (prevents double-click races) */
+.btn:disabled { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+</style>
+<style>
+/* ===== sidebar.css ===== */
+/* ===================== SIDEBAR.CSS ===================== */
+/* LEFT NAV (Instagram/X/LinkedIn-style list) + RIGHT WORLDS   */
+/* Both columns: fixed shell, independent inner scroll,        */
+/* popovers use position:fixed (JS-placed) so nothing reflows. */
+
+/* -------------------------------------------------------- */
+/* SHARED ROW COMPONENT — used identically by both columns   */
+/* -------------------------------------------------------- */
+.world-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius);
+  cursor: pointer; transition: background 0.15s, color 0.15s, transform 0.1s;
+  color: var(--text2);
+  font-size: 14.5px;
+  border: 1px solid transparent;
+  position: relative;
+}
+.world-item:hover { background: var(--bg3); color: var(--text); }
+.world-item:active { transform: scale(0.98); }
+.world-item.active {
+  background: var(--accentBg); color: var(--accent2);
+  border-color: var(--accentBorder);
+}
+.world-item.active .world-name { font-weight: 700; }
+.world-emoji {
+  font-size: 19px; width: 36px; height: 36px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg3); border-radius: 10px;
+  transition: background 0.15s;
+}
+.world-item.active .world-emoji { background: var(--bg4); }
+.world-item:hover .world-emoji { background: var(--bg4); }
+.world-emoji.create { background: linear-gradient(135deg, var(--accent), #a855f7); }
+.world-name-col { flex: 1; min-width: 0; }
+.world-name { font-weight: 500; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.world-item:not(.active) .world-name { color: var(--text2); }
+.world-item:hover .world-name { color: var(--text); }
+.world-sub { font-size: 11.5px; color: var(--text3); margin-top: 1px; }
+.world-item.active .world-sub { color: var(--accent2); opacity: 0.8; }
+.world-badge {
+  font-size: 10.5px; font-weight: 700; background: var(--accent);
+  color: #fff; border-radius: 10px; padding: 1px 7px; min-width: 18px;
+  text-align: center; flex-shrink: 0;
+}
+.sidebar-divider { height: 1px; background: var(--border); margin: 10px 14px; flex-shrink: 0; }
+
+/* -------------------------------------------------------- */
+/* LEFT NAV — fixed shell + scrollable list + pinned footer  */
+/* -------------------------------------------------------- */
+.left-nav {
+  width: var(--leftnav-w, 260px);
+  background: #4c4c4c;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0; /* allow inner flex child to scroll instead of overflowing */
+  position: relative; /* containing block for CSS-only fallbacks */
+}
+.left-nav-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 16px 8px; flex-shrink: 0;
+}
+.left-nav-logo {
+  font-size: 22px; cursor: pointer; width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.left-nav-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.left-nav-scroll::-webkit-scrollbar { width: 4px; }
+.left-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+.left-nav-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.left-nav-footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.left-nav-brand {
+  font-family: var(--fontDisplay);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  letter-spacing: 0.02em;
+}
+.left-nav-brand span { color: var(--accent2); }
+
+/* -------------------------------------------------------- */
+/* POPOVERS (More menu / Notifications)                      */
+/* Positioned with position:fixed and placed via JS          */
+/* (see app.js positionPopover) — never affects page layout, */
+/* never gets clipped by the scrolling nav list.              */
+/* -------------------------------------------------------- */
+.more-menu, .notif-dropdown {
+  position: fixed;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 8px;
+  display: none;
+  box-shadow: var(--shadow);
+  z-index: 400;
+}
+.more-menu.open, .notif-dropdown.open { display: block; }
+.more-menu { min-width: 210px; }
+.notif-dropdown { width: 300px; }
+
+.more-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.more-menu-item i, .more-menu-item .mi-emoji { font-size: 17px; width: 18px; text-align: center; flex-shrink: 0; }
+.more-menu-item i { color: var(--text3); }
+.more-menu-item:hover { background: var(--bg3); color: var(--text); }
+.more-menu-item:hover i { color: var(--accent2); }
+.more-menu-divider { height: 1px; background: var(--border); margin: 6px 4px; }
+
+.notif-dropdown-title { font-size: 13.5px; font-weight: 700; color: var(--text); padding: 6px 8px 10px; }
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notif-item:hover { background: var(--bg3); }
+.notif-item-icon {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accentBg); color: var(--accent2); font-size: 15px;
+}
+.notif-item-text { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+.notif-item-text b { color: var(--text); }
+.notif-item-time { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* small badge shown inline inside a nav row (Messages / Notifications rows) */
+.row-badge {
+  margin-left: auto;
+  font-size: 10.5px; font-weight: 700; background: var(--red);
+  color: #fff; border-radius: 10px; padding: 1px 7px; min-width: 18px;
+  text-align: center; flex-shrink: 0;
+}
+.row-badge:empty, .row-badge[data-count="0"] { display: none; }
+
+/* -------------------------------------------------------- */
+/* RIGHT COLUMN — Worlds                                      */
+/* (keeps the original .sidebar class name so other pages     */
+/*  that share sidebar.css keep working unchanged)             */
+/* -------------------------------------------------------- */
+.sidebar {
+  width: var(--sidebar-w);
+  background: #4c4c4c;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  min-height: 0;
+}
+.sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-scroll::-webkit-scrollbar { width: 4px; }
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+.sidebar-header {
+  padding: 14px 16px 6px; flex-shrink: 0;
+  font-size: 13px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* Discover worlds CTA — final row in the list, visually distinct */
+.discover-cta {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: var(--radius);
+  border: 1px dashed var(--border2);
+  color: var(--accent2); font-size: 14.5px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  margin-top: 4px;
+}
+.discover-cta:hover { border-color: var(--accentBorder); background: var(--accentBg); }
+.discover-cta .world-emoji { background: transparent; font-size: 19px; width: auto; height: auto; }
+
+/* -------------------------------------------------------- */
+/* RESPONSIVE                                                 */
+/* -------------------------------------------------------- */
+
+/* Tablet: right Worlds column hidden, left nav still full list */
+@media (max-width: 1180px) {
+  .sidebar { display: none; }
+}
+
+/* Small tablet / large phone: collapse left nav to icon-only rail */
+@media (max-width: 900px) {
+  .left-nav { width: 76px; }
+  .left-nav-header { justify-content: center; padding: 14px 0 8px; }
+  .left-nav .world-name-col, .left-nav .world-sub, .left-nav .world-badge { display: none; }
+  .left-nav .world-item { justify-content: center; padding: 12px; }
+  .left-nav-footer { justify-content: center; }
+  .left-nav-brand { display: none; }
+}
+
+/* Phone: left nav becomes a fixed bottom tab bar (Instagram/X style) */
+@media (max-width: 640px) {
+  .left-nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0; top: auto;
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 150;
+  }
+  .left-nav-header { display: none; }
+  .left-nav-footer { display: none; }
+  .left-nav-scroll {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 6px;
+    gap: 2px;
+  }
+  .left-nav .sidebar-divider { display: none; }
+  .left-nav .world-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 10px;
+    min-width: 56px;
+    flex-shrink: 0;
+  }
+  .left-nav .world-emoji { width: 24px; height: 24px; font-size: 17px; background: transparent; }
+  .left-nav .world-item.active .world-emoji,
+  .left-nav .world-item:hover .world-emoji { background: transparent; }
+  /* content must not sit under the fixed bottom bar */
+  .content-area { padding-bottom: 72px; }
+}
+
+</style>
+<style>/* tabs.css not provided in this project export — no rules needed for this test */</style>
+<style>
+/* ===== modals.css (stub) ===== */
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:600}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:24px;width:420px;max-width:90%}
+.modal h2{margin-bottom:10px;color:var(--text)}
+.modal p{color:var(--text2);font-size:13px;margin-bottom:16px}
+.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);margin-bottom:10px;font-family:var(--font)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:10px}
+
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo" onclick="showLanding()" style="cursor:pointer">WorldHub<span>β</span></div>
+  <div class="topbar-search">
+    <i class="ti ti-search si"></i>
+    <input type="text" placeholder="Search people, posts, code..." id="searchInput" onclick="openSearch()" readonly data-i18n-ph="search_ph">
+  </div>
+  <div class="topbar-actions" style="position:relative">
+    <div class="lang-btn" onclick="toggleLang()" id="langBtn">
+      <i class="ti ti-world" aria-hidden="true"></i>
+      <span id="langLabel">EN</span>
+      <i class="ti ti-chevron-down" aria-hidden="true" style="font-size:12px"></i>
+    </div>
+    <div class="lang-dropdown" id="langDropdown">
+      <div class="lang-option" onclick="setLang('EN','English')"><span>🇺🇸</span> English</div>
+      <div class="lang-option" onclick="setLang('AR','العربية')"><span>🇸🇦</span> العربية</div>
+      <div class="lang-option" onclick="setLang('FR','Français')"><span>🇫🇷</span> Français</div>
+      <div class="lang-option" onclick="setLang('ES','Español')"><span>🇪🇸</span> Español</div>
+    </div>
+    <button class="btn btn-primary" onclick="window.location.href='create-post.html'" title="Create" style="display:flex;align-items:center;gap:6px;padding:9px 16px;font-size:13px">
+      <i class="ti ti-plus" aria-hidden="true"></i> <span data-i18n="create">Create</span>
+    </button>
+    <div class="notif-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle theme"><i class="ti ti-moon" aria-hidden="true" id="themeIcon"></i></div>
+    <div class="notif-btn" onclick="window.location.href='messages.html'" title="Messages" style="cursor:pointer;position:relative">
+      <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+      <span style="position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--green);border:2px solid var(--bg2)"></span>
+    </div>
+    <div class="notif-btn"><i class="ti ti-bell" aria-hidden="true"></i></div>
+    <div class="avatar-btn" onclick="window.location.href='profile.html'" title="My Profile" style="cursor:pointer">YO</div>
+  </div>
+</div>
+
+<!-- SEARCH OVERLAY -->
+<div class="search-overlay" id="searchOverlay" onclick="closeSearchOverlay(event)">
+  <div class="search-box" onclick="event.stopPropagation()">
+    <div class="search-input-wrap">
+      <i class="ti ti-search" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:18px" aria-hidden="true"></i>
+      <input type="text" id="liveSearch" placeholder="Search Flutter developer, cardiologist, investor..." oninput="doSearch(this.value)" autofocus>
+    </div>
+    <div class="search-results" id="searchResults">
+      <div class="search-result" onclick="selectWorld('dev')">
+        <div style="font-size:22px">💻</div>
+        <div class="search-result-text">
+          <div class="search-result-title">World of Programming</div>
+          <div class="search-result-sub">48.3K members · Flutter · React · AI</div>
+        </div>
+        <i class="ti ti-arrow-right" style="color:var(--text3)" aria-hidden="true"></i>
+      </div>
+      <div class="search-result" onclick="selectWorld('ai')">
+        <div style="font-size:22px">🤖</div>
+        <div class="search-result-text">
+          <div class="search-result-title">World of AI</div>
+          <div class="search-result-sub">32.1K members · Machine Learning · LLMs</div>
+        </div>
+        <i class="ti ti-arrow-right" style="color:var(--text3)" aria-hidden="true"></i>
+      </div>
+      <div class="search-result">
+        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600">AK</div>
+        <div class="search-result-text">
+          <div class="search-result-title">Ahmed Karim</div>
+          <div class="search-result-sub">Flutter Developer · Egypt · 5 yrs exp</div>
+        </div>
+        <i class="ti ti-arrow-right" style="color:var(--text3)" aria-hidden="true"></i>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LANGUAGE CHANGE MODAL -->
+<div class="modal-overlay" id="langModal">
+  <div class="modal" style="text-align:center">
+    <h2>Language changed</h2>
+    <p id="langModalText">The interface will reload in English.</p>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-primary" onclick="closeLangModal()">Apply</button>
+      <button class="btn btn-secondary" onclick="closeLangModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN LAYOUT (3 columns: left nav · main feed · worlds) -->
+<div class="main-layout">
+
+  <!-- LEFT NAV -->
+  <div class="left-nav" id="leftNav">
+    <div class="left-nav-header">
+      <div class="left-nav-logo" onclick="showLanding()" title="WorldHub">🌐</div>
+    </div>
+
+    <div class="left-nav-scroll">
+      <div class="world-item active" id="navHome" title="الرئيسية" onclick="goHome()">
+        <span class="world-emoji">🏠</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_home">الرئيسية</span></span>
+      </div>
+      <div class="world-item" id="navReels" title="Reels" onclick="goReels()">
+        <span class="world-emoji">🎥</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_reels">Reels</span></span>
+      </div>
+      <div class="world-item" id="navMessages" title="الرسائل" onclick="window.location.href='messages.html'">
+        <span class="world-emoji">💬</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_messages">الرسائل</span></span>
+        <span class="row-badge" id="navMsgBadge">3</span>
+      </div>
+      <div class="world-item" id="navSearch" title="البحث" onclick="openSearch()">
+        <span class="world-emoji">🔍</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_search">البحث</span></span>
+      </div>
+      <div class="world-item" id="navNotif" title="الإشعارات" onclick="toggleNotifPanel(event)">
+        <span class="world-emoji">🔔</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_notifications">الإشعارات</span></span>
+        <span class="row-badge" id="navNotifBadge">5</span>
+      </div>
+      <div class="world-item" id="navCreate" title="إنشاء منشور" onclick="showModal('postModal')">
+        <span class="world-emoji create">➕</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_create_post">إنشاء منشور</span></span>
+      </div>
+      <div class="world-item" id="navDashboard" title="لوحة المعلومات" onclick="window.location.href='dashboard.html'">
+        <span class="world-emoji">📊</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_dashboard">لوحة المعلومات</span></span>
+      </div>
+      <div class="world-item" id="navProfile" title="الملف الشخصي" onclick="window.location.href='profile.html'">
+        <span class="world-emoji">👤</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_profile">الملف الشخصي</span></span>
+      </div>
+      <div class="sidebar-divider"></div>
+      <div class="world-item" id="navMore" title="المزيد" onclick="toggleMoreMenu(event)">
+        <span class="world-emoji">☰</span>
+        <span class="world-name-col"><span class="world-name" data-i18n="nav_more">المزيد</span></span>
+      </div>
+    </div>
+
+    <div class="left-nav-footer">
+      <div class="left-nav-brand">Meta<span>5</span></div>
+    </div>
+
+    <!-- Popovers: position:fixed, placed via JS (positionPopover) right next to their
+         trigger row — they float above everything and never shift page layout or get
+         clipped by the scrolling nav list. -->
+    <div class="notif-dropdown" id="notifDropdown">
+      <div class="notif-dropdown-title" data-i18n="notifications">Notifications</div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-heart" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Sara Rahman</b> liked your post in World of Programming<div class="notif-item-time">5 min ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-message-2" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Mokhtar K.</b> commented on your post<div class="notif-item-time">1 hour ago</div></div>
+      </div>
+      <div class="notif-item">
+        <div class="notif-item-icon"><i class="ti ti-user-plus" aria-hidden="true"></i></div>
+        <div class="notif-item-text"><b>Julia P.</b> started following you<div class="notif-item-time">3 hours ago</div></div>
+      </div>
+    </div>
+
+    <div class="more-menu" id="moreMenu">
+      <div class="more-menu-item" onclick="showModal('createModal')"><span class="mi-emoji">🚀</span> <span data-i18n="create_world">Create World</span></div>
+      <div class="more-menu-item" onclick="switchTab('market')"><span class="mi-emoji">🛍️</span> <span data-i18n="tab_market">Marketplace</span></div>
+      <div class="more-menu-item" onclick="switchTab('jobs')"><span class="mi-emoji">💼</span> <span data-i18n="tab_jobs">Jobs</span></div>
+      <div class="more-menu-item" onclick="switchTab('events')"><span class="mi-emoji">📅</span> <span data-i18n="tab_events">Events</span></div>
+      <div class="more-menu-item" onclick="switchTab('voice')"><span class="mi-emoji">🎙️</span> <span data-i18n="tab_voice">Voice Rooms</span></div>
+      <div class="more-menu-item" onclick="switchTab('files')"><span class="mi-emoji">📁</span> <span data-i18n="tab_files">Files</span></div>
+      <div class="more-menu-divider"></div>
+      <div class="more-menu-item" onclick="toggleTheme()"><span class="mi-emoji">🌙</span> <span data-i18n="toggle_theme">Toggle Theme</span></div>
+      <div class="more-menu-item"><span class="mi-emoji">⚙️</span> <span data-i18n="settings">Settings</span></div>
+    </div>
+  </div>
+
+  <!-- CONTENT AREA (middle · main feed) -->
+  <div class="content-area" id="contentArea">
+
+    <!-- LANDING PAGE -->
+    <div id="landing">
+      <div class="landing-eyebrow"><i class="ti ti-world" aria-hidden="true"></i> <span data-i18n="join_members">Join 2M+ professionals</span></div>
+      <h1 class="landing-h1" data-i18n-html="landing_h1">Connect in your <span class="grd">World</span></h1>
+      <p class="landing-sub" data-i18n="landing_sub">Specialized communities built for your profession. Posts, marketplace, jobs, voice rooms — everything your field needs.</p>
+      <div class="landing-worlds" id="landingWorlds">
+        <div class="landing-world-btn" onclick="openWorld('dev')"><div class="we">💻</div><div class="wl" data-i18n="w_programming">Programming</div></div>
+        <div class="landing-world-btn" onclick="openWorld('med')"><div class="we">🩺</div><div class="wl" data-i18n="w_med">Medicine</div></div>
+        <div class="landing-world-btn" onclick="openWorld('biz')"><div class="we">💼</div><div class="wl" data-i18n="w_biz">Entrepreneurship</div></div>
+        <div class="landing-world-btn" onclick="openWorld('edu')"><div class="we">🎓</div><div class="wl" data-i18n="w_edu">Education</div></div>
+        <div class="landing-world-btn" onclick="openWorld('design')"><div class="we">🎨</div><div class="wl" data-i18n="w_design">Design</div></div>
+        <div class="landing-world-btn" onclick="openWorld('photo')"><div class="we">📷</div><div class="wl" data-i18n="w_photo">Photography</div></div>
+        <div class="landing-world-btn" onclick="openWorld('ai')"><div class="we">🤖</div><div class="wl" data-i18n="w_ai">AI & ML</div></div>
+        <div class="landing-world-btn" onclick="openWorld('game')"><div class="we">🎮</div><div class="wl" data-i18n="w_game">Gaming</div></div>
+        <div class="landing-world-btn" onclick="openWorld('finance')"><div class="we">📈</div><div class="wl" data-i18n="w_finance">Finance</div></div>
+      </div>
+      <div class="landing-cta-row">
+        <button class="btn btn-primary" style="padding:12px 28px;font-size:15px" onclick="openWorld('dev')"><i class="ti ti-rocket" aria-hidden="true"></i> <span data-i18n="explore_worlds">Explore Worlds</span></button>
+        <button class="btn btn-ghost" style="padding:12px 24px;font-size:15px" onclick="showModal('createModal')"><i class="ti ti-plus" aria-hidden="true"></i> <span data-i18n="create_world">Create a World</span></button>
+      </div>
+    </div>
+
+    <!-- WORLD VIEW (hidden initially) -->
+    <div id="worldView" style="display:none">
+      <!-- WORLD HEADER (sticky) -->
+      <div class="world-header">
+        <div class="world-hero">
+          <div class="world-icon-big" id="worldIcon">💻</div>
+          <div class="world-info">
+            <h1 id="worldTitle">World of Programming</h1>
+            <div class="world-meta">
+              <div class="world-meta-item"><i class="ti ti-users" aria-hidden="true"></i> <span id="worldMembers">48.3K</span> members</div>
+              <div class="world-meta-item"><i class="ti ti-circle-filled" style="color:var(--green);font-size:8px"></i> <span id="worldOnline">1.2K</span> online</div>
+              <div class="world-meta-item"><i class="ti ti-message-2" aria-hidden="true"></i> <span id="worldPosts">2.8K</span> posts</div>
+            </div>
+          </div>
+          <div class="world-actions">
+            <button class="btn btn-ghost" onclick="openSearch()"><i class="ti ti-search" aria-hidden="true"></i> <span data-i18n="search">Search</span></button>
+            <button class="btn btn-primary" onclick="showModal('joinModal')"><i class="ti ti-check" aria-hidden="true"></i> <span data-i18n="join_world">Join World</span></button>
+          </div>
+        </div>
+        <div class="world-tabs" id="worldTabs">
+          <button class="tab-btn active" onclick="switchTab('home')"><i class="ti ti-home" aria-hidden="true"></i> <span data-i18n="tab_home">Home</span></button>
+          <button class="tab-btn" onclick="switchTab('posts')"><i class="ti ti-news" aria-hidden="true"></i> <span data-i18n="tab_posts">Posts</span></button>
+          <button class="tab-btn" onclick="switchTab('reels')"><i class="ti ti-player-play" aria-hidden="true"></i> <span data-i18n="tab_reels">Reels</span></button>
+          <button class="tab-btn" onclick="switchTab('videos')"><i class="ti ti-video" aria-hidden="true"></i> <span data-i18n="tab_videos">Videos</span></button>
+          <button class="tab-btn" onclick="switchTab('chat')"><i class="ti ti-message-2" aria-hidden="true"></i> <span data-i18n="tab_chat">Chat</span></button>
+          <button class="tab-btn" onclick="switchTab('voice')"><i class="ti ti-microphone" aria-hidden="true"></i> <span data-i18n="tab_voice">Voice Rooms</span></button>
+          <button class="tab-btn" onclick="switchTab('files')"><i class="ti ti-folder" aria-hidden="true"></i> <span data-i18n="tab_files">Files</span></button>
+          <button class="tab-btn" onclick="switchTab('market')"><i class="ti ti-shopping-bag" aria-hidden="true"></i> <span data-i18n="tab_market">Marketplace</span></button>
+          <button class="tab-btn" onclick="switchTab('jobs')"><i class="ti ti-briefcase" aria-hidden="true"></i> <span data-i18n="tab_jobs">Jobs</span></button>
+          <button class="tab-btn" onclick="switchTab('events')"><i class="ti ti-calendar" aria-hidden="true"></i> <span data-i18n="tab_events">Events</span></button>
+          <button class="tab-btn" onclick="switchTab('membership')"><i class="ti ti-crown" aria-hidden="true"></i> <span data-i18n="tab_membership">Membership</span></button>
+        </div>
+      </div>
+
+      <!-- TAB: HOME (content lives in pages/home.html) -->
+      <div class="tab-panel active" id="tab-home">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Members</div><div class="stat-value" id="s-members">48.3K</div><div class="stat-sub">+124 today</div></div>
+          <div class="stat-card"><div class="stat-label">Posts Today</div><div class="stat-value">342</div><div class="stat-sub">+18% vs avg</div></div>
+          <div class="stat-card"><div class="stat-label">Online Now</div><div class="stat-value">1.2K</div><div class="stat-sub">Active right now</div></div>
+          <div class="stat-card"><div class="stat-label">Open Jobs</div><div class="stat-value">87</div><div class="stat-sub">12 new this week</div></div>
+        </div>
+        <div style="display:flex;gap:20px">
+          <div style="flex:1;min-width:0">
+            <div class="section-header"><div class="section-title">Trending Posts</div><div class="section-link" onclick="switchTab('posts')">See all</div></div>
+            <div id="feed-posts"></div>
+          </div>
+          <div style="width:240px;flex-shrink:0">
+            <div class="section-header"><div class="section-title">Top Companies</div></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">🚀</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">NovaDev Inc.</div><div style="font-size:11px;color:var(--text3)">14 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">⚡</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">ByteForge</div><div style="font-size:11px;color:var(--text3)">8 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;align-items:center;gap:10px">
+                <div style="font-size:22px">🧠</div>
+                <div><div style="font-size:13px;font-weight:600;color:var(--text)">Synaptic AI</div><div style="font-size:11px;color:var(--text3)">22 open positions</div></div>
+                <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;margin-left:auto">Follow</button>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <div class="section-header"><div class="section-title">Upcoming Events</div></div>
+              <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px">
+                <div style="font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:0.06em">JUL 12</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text);margin:4px 0 2px">Flutter World Summit</div>
+                <div style="font-size:12px;color:var(--text3)">Online · 2K attending</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: POSTS -->
+      <div class="tab-panel" id="tab-posts">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="btn btn-primary" onclick="showModal('postModal')"><i class="ti ti-pencil" aria-hidden="true"></i> New Post</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Questions</button>
+          <button class="btn btn-ghost">Showcase</button>
+          <button class="btn btn-ghost">Tutorial</button>
+        </div>
+        <div id="postsContainer">
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div>
+              <div class="post-meta"><div class="post-author">Sara Rahman</div><div class="post-time">2h ago · <span style="color:var(--accent2)">Flutter</span></div></div>
+              <div class="post-badge" style="background:var(--accentBg);color:var(--accent2);border-color:var(--accentBorder)">Showcase</div>
+            </div>
+            <div class="post-title">Built a full offline-first app with Flutter + Hive</div>
+            <div class="post-body">After 3 months of work, sharing the full source code and architecture diagram. State management done right...</div>
+            <div class="post-tags"><span class="tag">Flutter</span><span class="tag">Hive</span><span class="tag">Architecture</span></div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 284</div>
+              <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 47</div>
+              <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i></div>
+              <div class="post-action"><i class="ti ti-bookmark" aria-hidden="true"></i></div>
+              <div class="post-action" style="margin-left:auto"><i class="ti ti-dots" aria-hidden="true"></i></div>
+            </div>
+          </div>
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div>
+              <div class="post-meta"><div class="post-author">Mokhtar K.</div><div class="post-time">5h ago · <span style="color:var(--accent2)">Rust</span></div></div>
+              <div class="post-badge" style="background:var(--greenBg);color:var(--green);border-color:rgba(34,197,94,0.3)">Tutorial</div>
+            </div>
+            <div class="post-title">Why I rewrote my Python backend in Rust — 40x performance</div>
+            <div class="post-body">Complete benchmark comparison with charts. Memory from 800MB to 22MB, latency from 120ms to 3ms...</div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 512</div>
+              <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 93</div>
+              <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i></div>
+            </div>
+          </div>
+          <div class="post-card">
+            <div class="post-header">
+              <div class="post-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div>
+              <div class="post-meta"><div class="post-author">Julia P.</div><div class="post-time">1d ago · <span style="color:var(--accent2)">React</span></div></div>
+              <div class="post-badge" style="background:var(--amberBg);color:var(--amber);border-color:rgba(245,158,11,0.3)">Question</div>
+            </div>
+            <div class="post-title">How are you handling auth with Next.js 15 App Router?</div>
+            <div class="post-body">Middleware vs server components for protecting routes — I keep running into hydration mismatches. What's your pattern?</div>
+            <div class="post-footer">
+              <div class="post-action"><i class="ti ti-heart" aria-hidden="true"></i> 89</div>
+              <div class="post-action"><i class="ti ti-message-2" aria-hidden="true"></i> 156</div>
+              <div class="post-action"><i class="ti ti-share" aria-hidden="true"></i></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: REELS -->
+      <div class="tab-panel" id="tab-reels">
+        <div class="reels-grid">
+          <div class="reel-card" style="background:linear-gradient(160deg,#1a1a2e,#16213e)"><div class="reel-emoji">💻</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">10 VS Code shortcuts you need</div><div class="reel-views">128K views</div></div>
+          <div class="reel-card" style="background:linear-gradient(160deg,#0f2027,#203a43)"><div class="reel-emoji">🦀</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">Rust ownership in 60 seconds</div><div class="reel-views">84K views</div></div>
+          <div class="reel-card" style="background:linear-gradient(160deg,#1a0533,#2d0b6b)"><div class="reel-emoji">🐍</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">Python one-liners that impress</div><div class="reel-views">210K views</div></div>
+          <div class="reel-card" style="background:linear-gradient(160deg,#001f3f,#003d7a)"><div class="reel-emoji">⚡</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">FastAPI vs Express benchmark</div><div class="reel-views">56K views</div></div>
+          <div class="reel-card" style="background:linear-gradient(160deg,#0d1b2a,#1b2838)"><div class="reel-emoji">🎯</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">TypeScript generics crash course</div><div class="reel-views">178K views</div></div>
+          <div class="reel-card" style="background:linear-gradient(160deg,#1c1c1c,#2d2d2d)"><div class="reel-emoji">🔥</div><div class="reel-play"><i class="ti ti-player-play" aria-hidden="true"></i></div><div class="reel-gradient"></div><div class="reel-title">Deploy to AWS in 3 minutes</div><div class="reel-views">93K views</div></div>
+        </div>
+      </div>
+
+      <!-- TAB: VIDEOS -->
+      <div class="tab-panel" id="tab-videos">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+          <div class="market-card"><div class="market-thumb" style="height:160px;position:relative"><div style="font-size:52px">🎬</div><div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.8);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px">48:32</div></div><div class="market-info"><div class="market-title">Complete Flutter Course 2025</div><div class="market-seller">Sara Rahman · 18K views · 2 days ago</div></div></div>
+          <div class="market-card"><div class="market-thumb" style="height:160px;position:relative"><div style="font-size:52px">🦀</div><div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.8);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px">1:24:07</div></div><div class="market-info"><div class="market-title">Systems Programming with Rust</div><div class="market-seller">Mokhtar K. · 32K views · 1 week ago</div></div></div>
+          <div class="market-card"><div class="market-thumb" style="height:160px;position:relative"><div style="font-size:52px">⚛️</div><div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.8);color:#fff;font-size:11px;padding:2px 6px;border-radius:4px">1:08:44</div></div><div class="market-info"><div class="market-title">Next.js 15 Full Tutorial</div><div class="market-seller">Julia P. · 47K views · 3 days ago</div></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: CHAT -->
+      <div class="tab-panel" id="tab-chat" style="padding:0">
+        <div class="chat-layout">
+          <div class="chat-sidebar">
+            <div class="sidebar-label" style="padding:12px 8px 6px;font-size:10px">Channels</div>
+            <div class="chat-channel active" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><i class="ti ti-hash" aria-hidden="true"></i> general</div>
+            <div class="chat-channel" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><i class="ti ti-hash" aria-hidden="true"></i> flutter</div>
+            <div class="chat-channel" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><i class="ti ti-hash" aria-hidden="true"></i> jobs</div>
+            <div class="chat-channel" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><i class="ti ti-hash" aria-hidden="true"></i> showcase</div>
+            <div class="chat-channel" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')"><i class="ti ti-hash" aria-hidden="true"></i> help-needed</div>
+            <div class="sidebar-label" style="padding:12px 8px 6px;font-size:10px">Direct</div>
+            <div class="chat-channel" onclick="this.parentElement.querySelectorAll('.chat-channel').forEach(x=>x.classList.remove('active'));this.classList.add('active')">
+              <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#6c63ff,#a855f7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;color:#fff">SR</div>
+              Sara Rahman
+            </div>
+          </div>
+          <div class="chat-main">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Sara Rahman</span><span class="chat-msg-time">10:24 AM</span></div><div class="chat-msg-text">Hey everyone! Just pushed the v2 of my offline-first starter kit. Would love feedback on the sync layer.</div></div></div>
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Mokhtar K.</span><span class="chat-msg-time">10:31 AM</span></div><div class="chat-msg-text">That's great! How did you handle conflict resolution when merging offline changes?</div></div></div>
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Julia P.</span><span class="chat-msg-time">10:35 AM</span></div><div class="chat-msg-text">Testing it now — initial impressions are really solid. The CRDT approach is clever 🔥</div></div></div>
+              <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div><div class="chat-msg-bubble"><div class="chat-msg-header"><span class="chat-msg-name">Sara Rahman</span><span class="chat-msg-time">10:37 AM</span></div><div class="chat-msg-text">@Mokhtar I'm using a last-write-wins strategy with vector clocks for conflict detection. I'll do a deeper writeup soon.</div></div></div>
+            </div>
+            <div class="chat-input-bar">
+              <input class="chat-input" id="chatInput" placeholder="Message #general..." onkeydown="if(event.key==='Enter')sendChat()">
+              <button class="chat-send" onclick="sendChat()"><i class="ti ti-send" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div class="ai-panel">
+            <div class="ai-header">
+              <div class="ai-orb"><i class="ti ti-robot" aria-hidden="true"></i></div>
+              <div><div class="ai-title">World AI</div><div class="ai-subtitle">Ask me anything</div></div>
+            </div>
+            <div class="ai-messages" id="aiMessages">
+              <div class="ai-msg"><div class="ai-bubble ai-bubble-bot">Hi! I'm your Programming World assistant. I can find posts, summarize discussions, recommend resources, and more.</div></div>
+            </div>
+            <div class="ai-suggestions">
+              <button class="ai-suggest-btn" onclick="askAI('Find the best Flutter posts this week')"><i class="ti ti-search" aria-hidden="true"></i> Best Flutter posts this week</button>
+              <button class="ai-suggest-btn" onclick="askAI('Summarize today\'s discussions')"><i class="ti ti-notes" aria-hidden="true"></i> Summarize today's chat</button>
+              <button class="ai-suggest-btn" onclick="askAI('Who are the top contributors?')"><i class="ti ti-star" aria-hidden="true"></i> Top contributors</button>
+            </div>
+            <div class="ai-input-bar">
+              <input class="ai-input" id="aiInput" placeholder="Ask the AI..." onkeydown="if(event.key==='Enter')askAI()">
+              <button class="ai-send" onclick="askAI()"><i class="ti ti-send" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: VOICE ROOMS -->
+      <div class="tab-panel" id="tab-voice">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="btn btn-primary" onclick="showModal('voiceModal')"><i class="ti ti-microphone" aria-hidden="true"></i> Create Room</button>
+        </div>
+        <div class="voice-grid">
+          <div class="voice-card live">
+            <div class="voice-header"><div class="voice-title">🔴 Flutter State Management Debate</div><span class="live-badge">LIVE</span></div>
+            <div class="voice-desc">Riverpod vs Bloc vs Provider — which wins in 2025?</div>
+            <div class="voice-participants">
+              <div class="voice-avatar" style="background:linear-gradient(135deg,#6c63ff,#a855f7);color:#fff">SR</div>
+              <div class="voice-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">MK</div>
+              <div class="voice-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff">JP</div>
+              <div class="voice-avatar" style="background:var(--bg4);color:var(--text3)">+8</div>
+            </div>
+            <div class="voice-footer"><div class="voice-count" style="font-size:12px;color:var(--text3)">11 listening</div><button class="btn btn-primary" style="padding:6px 14px;font-size:12px"><i class="ti ti-headphones" aria-hidden="true"></i> Join</button></div>
+          </div>
+          <div class="voice-card">
+            <div class="voice-header"><div class="voice-title">Ask a Senior Dev Anything</div><span style="background:var(--greenBg);color:var(--green);border:1px solid rgba(34,197,94,0.3);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">OPEN</span></div>
+            <div class="voice-desc">Weekly office hours — bring your toughest questions</div>
+            <div class="voice-participants">
+              <div class="voice-avatar" style="background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff">AJ</div>
+              <div class="voice-avatar" style="background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff">LM</div>
+            </div>
+            <div class="voice-footer"><div class="voice-count">Starts in 2h</div><button class="btn btn-secondary" style="padding:6px 14px;font-size:12px"><i class="ti ti-bell" aria-hidden="true"></i> Remind me</button></div>
+          </div>
+          <div class="voice-card">
+            <div class="voice-header"><div class="voice-title">Code Review Session</div><span style="background:var(--amberBg);color:var(--amber);border:1px solid rgba(245,158,11,0.3);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px">SOON</span></div>
+            <div class="voice-desc">Live code review of community submissions</div>
+            <div class="voice-participants"><div class="voice-avatar" style="background:linear-gradient(135deg,#22c55e,#0ea5e9);color:#fff">TS</div></div>
+            <div class="voice-footer"><div class="voice-count">Tomorrow 3PM UTC</div><button class="btn btn-secondary" style="padding:6px 14px;font-size:12px"><i class="ti ti-bell" aria-hidden="true"></i> Remind me</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: FILES -->
+      <div class="tab-panel" id="tab-files">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="btn btn-primary"><i class="ti ti-upload" aria-hidden="true"></i> Upload File</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Code</button>
+          <button class="btn btn-ghost">Docs</button>
+          <button class="btn btn-ghost">Assets</button>
+        </div>
+        <div class="files-list">
+          <div class="file-item"><div class="file-icon">📦</div><div><div class="file-name">flutter_offline_starter_v2.zip</div><div class="file-meta">Sara Rahman · 3 days ago · 47 downloads</div></div><div class="file-size">2.4 MB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download" aria-hidden="true"></i></button></div>
+          <div class="file-item"><div class="file-icon">📄</div><div><div class="file-name">rust_vs_python_benchmarks.pdf</div><div class="file-meta">Mokhtar K. · 5 days ago · 128 downloads</div></div><div class="file-size">890 KB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download" aria-hidden="true"></i></button></div>
+          <div class="file-item"><div class="file-icon">🎨</div><div><div class="file-name">figma_dev_ui_kit_2025.fig</div><div class="file-meta">Julia P. · 1 week ago · 340 downloads</div></div><div class="file-size">18.7 MB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download" aria-hidden="true"></i></button></div>
+          <div class="file-item"><div class="file-icon">🖥️</div><div><div class="file-name">nextjs15_boilerplate.tar.gz</div><div class="file-meta">Dev Team · 2 weeks ago · 892 downloads</div></div><div class="file-size">5.1 MB</div><button class="btn btn-ghost" style="padding:5px 12px;font-size:12px;flex-shrink:0"><i class="ti ti-download" aria-hidden="true"></i></button></div>
+        </div>
+      </div>
+
+      <!-- TAB: MARKETPLACE (full content in pages/market.html) -->
+      <div class="tab-panel" id="tab-market">
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="showModal('sellModal')"><i class="ti ti-plus" aria-hidden="true"></i> Sell Product</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Templates</button>
+          <button class="btn btn-ghost">Code</button>
+          <button class="btn btn-ghost">Plugins</button>
+          <button class="btn btn-ghost">Apps</button>
+        </div>
+        <div class="market-grid" id="marketGrid">
+          <div class="market-card"><div class="market-thumb">🎨</div><div class="market-info"><div class="market-title">Admin Dashboard Template</div><div class="market-seller">by Sara Rahman</div><div class="market-footer"><div class="market-price">$29</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 4.9</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">⚡</div><div class="market-info"><div class="market-title">Flutter Auth Kit</div><div class="market-seller">by Mokhtar K.</div><div class="market-footer"><div class="market-price price-free">Free</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 4.7</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🔌</div><div class="market-info"><div class="market-title">VS Code AI Extension Pack</div><div class="market-seller">by DevTools Co.</div><div class="market-footer"><div class="market-price">$9/mo</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 4.8</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🤖</div><div class="market-info"><div class="market-title">AI Code Reviewer Bot</div><div class="market-seller">by Julia P.</div><div class="market-footer"><div class="market-price">$49</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 5.0</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">📱</div><div class="market-info"><div class="market-title">Mobile SaaS Starter</div><div class="market-seller">by NovaDev Inc.</div><div class="market-footer"><div class="market-price">$79</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 4.6</div></div></div></div>
+          <div class="market-card"><div class="market-thumb">🔧</div><div class="market-info"><div class="market-title">DevOps CI/CD Template</div><div class="market-seller">by ByteForge</div><div class="market-footer"><div class="market-price price-free">Free</div><div class="market-rating"><i class="ti ti-star-filled" aria-hidden="true"></i> 4.5</div></div></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: JOBS (full content in pages/jobs.html) -->
+      <div class="tab-panel" id="tab-jobs">
+        <div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="showModal('jobModal')"><i class="ti ti-plus" aria-hidden="true"></i> Post a Job</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">Remote</button>
+          <button class="btn btn-ghost">Full-time</button>
+          <button class="btn btn-ghost">Freelance</button>
+        </div>
+        <div>
+          <div class="job-card"><div class="job-header"><div class="company-logo">🚀</div><div style="flex:1"><div class="job-title">Senior Flutter Developer</div><div class="job-company">NovaDev Inc. · San Francisco, CA</div></div><div class="job-salary">$140K–$180K</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Full-time</span><span class="job-tag">Flutter</span><span class="job-tag">Dart</span><span class="job-tag">Firebase</span></div></div>
+          <div class="job-card"><div class="job-header"><div class="company-logo">⚡</div><div style="flex:1"><div class="job-title">Rust Systems Engineer</div><div class="job-company">ByteForge · Berlin, Germany</div></div><div class="job-salary">€100K–€130K</div></div><div class="job-tags"><span class="job-tag remote">Hybrid</span><span class="job-tag">Full-time</span><span class="job-tag">Rust</span><span class="job-tag">Linux</span><span class="job-tag">Systems</span></div></div>
+          <div class="job-card"><div class="job-header"><div class="company-logo">🧠</div><div style="flex:1"><div class="job-title">AI/ML Engineer — LLM Infra</div><div class="job-company">Synaptic AI · Remote</div></div><div class="job-salary">$160K–$220K</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Full-time</span><span class="job-tag">Python</span><span class="job-tag">PyTorch</span><span class="job-tag">Kubernetes</span></div></div>
+          <div class="job-card"><div class="job-header"><div class="company-logo">🎯</div><div style="flex:1"><div class="job-title">Frontend Developer (React/Next.js)</div><div class="job-company">Freelance · Anywhere</div></div><div class="job-salary">$80–$120/hr</div></div><div class="job-tags"><span class="job-tag remote">Remote</span><span class="job-tag">Freelance</span><span class="job-tag">React</span><span class="job-tag">Next.js</span><span class="job-tag">TypeScript</span></div></div>
+        </div>
+      </div>
+
+      <!-- TAB: EVENTS -->
+      <div class="tab-panel" id="tab-events">
+        <div style="display:flex;gap:12px;margin-bottom:20px">
+          <button class="btn btn-primary" onclick="showModal('eventModal')"><i class="ti ti-plus" aria-hidden="true"></i> Create Event</button>
+          <button class="btn btn-secondary">All</button>
+          <button class="btn btn-ghost">This Week</button>
+          <button class="btn btn-ghost">Online</button>
+          <button class="btn btn-ghost">In Person</button>
+        </div>
+        <div>
+          <div class="event-card">
+            <div class="event-date"><div class="event-month">JUL</div><div class="event-day">12</div></div>
+            <div class="event-info"><div class="event-title">Flutter World Summit 2025</div><div class="event-desc">The biggest Flutter community event of the year — 50+ speakers, workshops, and networking.</div><div class="event-meta"><div class="event-meta-item"><i class="ti ti-world" aria-hidden="true"></i> Online</div><div class="event-meta-item"><i class="ti ti-users" aria-hidden="true"></i> 2.4K attending</div><div class="event-meta-item"><i class="ti ti-clock" aria-hidden="true"></i> 9AM UTC</div></div></div>
+            <button class="btn btn-primary" style="flex-shrink:0;align-self:start">RSVP</button>
+          </div>
+          <div class="event-card">
+            <div class="event-date"><div class="event-month">JUL</div><div class="event-day">18</div></div>
+            <div class="event-info"><div class="event-title">Rust & Systems Programming Hackathon</div><div class="event-desc">48-hour hackathon building systems software in Rust. $10K in prizes.</div><div class="event-meta"><div class="event-meta-item"><i class="ti ti-world" aria-hidden="true"></i> Online</div><div class="event-meta-item"><i class="ti ti-users" aria-hidden="true"></i> 890 registered</div><div class="event-meta-item"><i class="ti ti-trophy" aria-hidden="true"></i> $10K prizes</div></div></div>
+            <button class="btn btn-secondary" style="flex-shrink:0;align-self:start">Register</button>
+          </div>
+          <div class="event-card">
+            <div class="event-date" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3)"><div class="event-month" style="color:var(--red)">NOW</div><div class="event-day" style="font-size:20px">LIVE</div></div>
+            <div class="event-info"><div class="event-title" style="display:flex;align-items:center;gap:8px">Code Review Session <span class="live-badge">LIVE</span></div><div class="event-desc">Streaming now — submitting your code for live review from senior devs.</div><div class="event-meta"><div class="event-meta-item"><i class="ti ti-users" aria-hidden="true"></i> 156 watching</div><div class="event-meta-item"><i class="ti ti-clock" aria-hidden="true"></i> Started 1h ago</div></div></div>
+            <button class="btn btn-primary" style="flex-shrink:0;align-self:start;background:var(--red)"><i class="ti ti-player-play" aria-hidden="true"></i> Watch</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: MEMBERSHIP -->
+      <div class="tab-panel" id="tab-membership">
+        <div style="margin-bottom:24px">
+          <div style="font-size:20px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);margin-bottom:6px">World of Programming Membership</div>
+          <div style="font-size:14px;color:var(--text2)">Choose the plan that fits your goals</div>
+        </div>
+        <div class="sub-grid">
+          <div class="sub-card">
+            <div class="sub-tag free"><i class="ti ti-leaf" aria-hidden="true"></i> Free</div>
+            <div class="sub-price">$0 <span>/month</span></div>
+            <div class="sub-desc">Great for exploring the community and staying informed.</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Browse all posts and content</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Comment on posts</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Post up to 3 times per day</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Join voice rooms (listener)</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Browse marketplace</div>
+            <div class="sub-feature"><i class="ti ti-x no"></i> Sell on marketplace</div>
+            <div class="sub-feature"><i class="ti ti-x no"></i> Create events</div>
+            <div class="sub-feature"><i class="ti ti-x no"></i> Advanced analytics</div>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:20px">Current Plan</button>
+          </div>
+          <div class="sub-card pro">
+            <div class="sub-tag pro-tag"><i class="ti ti-crown" aria-hidden="true"></i> Pro</div>
+            <div class="sub-price">$12 <span>/month</span></div>
+            <div class="sub-desc">For serious professionals who want to publish, sell, and grow.</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Everything in Free</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Unlimited posts</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Sell on marketplace</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Create and host events</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Start voice rooms</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Live streaming</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Advanced post analytics</div>
+            <div class="sub-feature"><i class="ti ti-check"></i> Company page creation</div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:20px" onclick="showModal('upgradeModal')"><i class="ti ti-crown" aria-hidden="true"></i> Upgrade to Pro</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /worldView -->
+
+    <!-- FOOTER -->
+    <footer style="border-top:1px solid var(--border);padding:24px 28px;margin-top:20px;display:flex;flex-wrap:wrap;gap:18px;justify-content:space-between;align-items:center;color:var(--text3);font-size:13px">
+      <div>© 2026 WorldHub. <span data-i18n="rights">All rights reserved.</span></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap">
+        <a href="about.html" style="color:var(--text2);text-decoration:none" data-i18n="about">About</a>
+        <a href="contact.html" style="color:var(--text2);text-decoration:none" data-i18n="contact">Contact</a>
+        <a href="privacy.html" style="color:var(--text2);text-decoration:none" data-i18n="privacy">Privacy Policy</a>
+        <a href="terms.html" style="color:var(--text2);text-decoration:none" data-i18n="terms">Terms of Service</a>
+        <a href="profile.html" style="color:var(--text2);text-decoration:none" data-i18n="my_profile">My Profile</a>
+      </div>
+    </footer>
+
+  </div><!-- /contentArea -->
+
+  <!-- WORLDS SIDEBAR (right) -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span>🌐</span> <span data-i18n="worlds">Worlds</span>
+    </div>
+    <div class="sidebar-scroll" id="worldsList"><!-- populated by worlds.js --></div>
+  </div>
+
+</div><!-- /mainLayout -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="joinModal" onclick="closeModal('joinModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Join this World</h2>
+    <p>You're joining <strong id="joinWorldName">World of Programming</strong>. Choose your membership level to get started.</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px"><input type="radio" name="joinPlan" value="free" checked> Free — Browse and comment</label>
+      <label style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--accentBorder);border-radius:8px;cursor:pointer;color:var(--text2);font-size:14px;background:var(--accentBg)"><input type="radio" name="joinPlan" value="pro"> Pro ($12/mo) — Full access + sell</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('joinModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('joinModal')"><i class="ti ti-check" aria-hidden="true"></i> Join World</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="postModal" onclick="closeModal('postModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>New Post</h2>
+    <input class="modal-input" placeholder="Post title...">
+    <textarea class="modal-input" rows="4" placeholder="What's on your mind?" style="resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="tag" style="cursor:pointer">+ Flutter</span>
+      <span class="tag" style="cursor:pointer">+ React</span>
+      <span class="tag" style="cursor:pointer">+ Add tag</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('postModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addPost()"><i class="ti ti-send" aria-hidden="true"></i> Publish</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="createModal" onclick="closeModal('createModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Create a World</h2>
+    <p>Build a specialized community for your field or interest.</p>
+    <input class="modal-input" placeholder="World name (e.g. Blockchain, UX Writing...)">
+    <input class="modal-input" placeholder="Short description">
+    <input class="modal-input" placeholder="Category (Tech, Health, Business...)">
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('createModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('createModal')"><i class="ti ti-rocket" aria-hidden="true"></i> Create World</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sellModal" onclick="closeModal('sellModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>List a Product</h2>
+    <input class="modal-input" placeholder="Product name">
+    <textarea class="modal-input" rows="3" placeholder="Description" style="resize:vertical"></textarea>
+    <input class="modal-input" placeholder="Price (e.g. $29, Free, $9/mo)">
+    <select class="modal-input" style="appearance:auto">
+      <option>Category: Template</option>
+      <option>Category: Plugin</option>
+      <option>Category: App</option>
+      <option>Category: Course</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('sellModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('sellModal')"><i class="ti ti-shopping-bag" aria-hidden="true"></i> List Product</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="upgradeModal" onclick="closeModal('upgradeModal',event)">
+  <div class="modal" style="text-align:center" onclick="event.stopPropagation()">
+    <div style="font-size:40px;margin-bottom:12px">👑</div>
+    <h2>Upgrade to Pro</h2>
+    <p>Unlock unlimited posting, marketplace selling, live streaming, and advanced analytics.</p>
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px;text-align:left">
+      <div style="font-size:28px;font-weight:700;color:var(--text);font-family:var(--fontDisplay);margin-bottom:4px">$12<span style="font-size:14px;color:var(--text3);font-weight:400">/month</span></div>
+      <div style="font-size:13px;color:var(--text3)">Cancel anytime · Instant access · Per world</div>
+    </div>
+    <div class="modal-actions" style="justify-content:center">
+      <button class="btn btn-secondary" onclick="closeModal('upgradeModal')">Maybe later</button>
+      <button class="btn btn-primary" onclick="closeModal('upgradeModal')" style="padding:10px 28px"><i class="ti ti-crown" aria-hidden="true"></i> Upgrade Now</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="voiceModal" onclick="closeModal('voiceModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Create Voice Room</h2>
+    <input class="modal-input" placeholder="Room title (e.g. Flutter AMA)">
+    <textarea class="modal-input" rows="2" placeholder="Description" style="resize:vertical"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('voiceModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('voiceModal')"><i class="ti ti-microphone" aria-hidden="true"></i> Start Room</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eventModal" onclick="closeModal('eventModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Create Event</h2>
+    <input class="modal-input" placeholder="Event title">
+    <input class="modal-input" type="date">
+    <textarea class="modal-input" rows="2" placeholder="Description" style="resize:vertical"></textarea>
+    <select class="modal-input" style="appearance:auto">
+      <option>Online</option>
+      <option>In Person</option>
+      <option>Hybrid</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('eventModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('eventModal')"><i class="ti ti-calendar" aria-hidden="true"></i> Create Event</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="jobModal" onclick="closeModal('jobModal',event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>Post a Job</h2>
+    <input class="modal-input" placeholder="Job title">
+    <input class="modal-input" placeholder="Company name">
+    <input class="modal-input" placeholder="Salary range (e.g. $80K–$120K)">
+    <input class="modal-input" placeholder="Location (or Remote)">
+    <textarea class="modal-input" rows="3" placeholder="Job description" style="resize:vertical"></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('jobModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal('jobModal')"><i class="ti ti-briefcase" aria-hidden="true"></i> Post Job</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS (order matters: supabase → worlds → app → chat → ai) -->
+<script>window.sb = { auth: { getSession: async () => ({ data: { session: null } }) } };</script>
+<script>function applyTranslations(code){ var el=document.getElementById('langLabel'); if(el) el.textContent = code; }</script>
+<script>function toggleTheme(){ var root=document.documentElement; root.setAttribute('data-theme', root.getAttribute('data-theme')==='light'?'dark':'light'); }</script>
+<script>
+// ===================== WORLDS.JS =====================
+// World data, dynamic sidebar rendering, openWorld, showLanding logic
+
+const worlds = {
+  dev:     { icon:'💻', title:'World of Programming',     members:'48.3K', online:'1.2K', posts:'2.8K', badge: 12 },
+  ai:      { icon:'🤖', title:'World of AI & ML',          members:'32.1K', online:'987',  posts:'1.9K', badge: 0  },
+  design:  { icon:'🎨', title:'World of Design',            members:'27.8K', online:'742',  posts:'1.4K', badge: 3  },
+  biz:     { icon:'💼', title:'World of Entrepreneurship',  members:'41.2K', online:'1.1K', posts:'2.2K', badge: 0  },
+  med:     { icon:'🩺', title:'World of Medicine',          members:'19.4K', online:'520',  posts:'980',  badge: 0  },
+  edu:     { icon:'🎓', title:'World of Education',         members:'35.7K', online:'890',  posts:'1.7K', badge: 0  },
+  photo:   { icon:'📷', title:'World of Photography',       members:'22.3K', online:'610',  posts:'1.1K', badge: 0  },
+  game:    { icon:'🎮', title:'World of Gaming',            members:'58.9K', online:'2.3K', posts:'3.4K', badge: 0  },
+  finance: { icon:'📈', title:'World of Finance',           members:'29.6K', online:'740',  posts:'1.3K', badge: 0  },
+};
+
+// Order matches the requested right-sidebar spec exactly.
+const WORLD_ORDER = ['dev', 'ai', 'design', 'biz', 'med', 'edu', 'photo', 'game', 'finance'];
+
+// i18n keys carried over from the original static markup, one per world id
+const WORLD_I18N_KEY = {
+  dev: 'w_programming', ai: 'w_ai', design: 'w_design', biz: 'w_biz',
+  med: 'w_med', edu: 'w_edu', photo: 'w_photo', game: 'w_game', finance: 'w_finance'
+};
+
+let currentWorld = null;
+
+function worldItemHTML(id) {
+  const w = worlds[id];
+  const badge = w.badge > 0 ? `<span class="world-badge">${w.badge}</span>` : '';
+  return `
+    <div class="world-item${id === 'dev' ? ' active' : ''}" onclick="openWorld('${id}')" id="nav-${id}" title="${w.title}">
+      <span class="world-emoji">${w.icon}</span>
+      <span class="world-name-col">
+        <span class="world-name" data-i18n="${WORLD_I18N_KEY[id]}">${w.title.replace('World of ', '')}</span>
+        <span class="world-sub">${w.members} members</span>
+      </span>
+      ${badge}
+    </div>`;
+}
+
+function renderWorldsSidebar() {
+  const list = document.getElementById('worldsList');
+  if (!list) return;
+
+  const rows = WORLD_ORDER.map(worldItemHTML).join('');
+  const discoverCta = `
+    <div class="discover-cta" onclick="showModal('createModal')">
+      <span class="world-emoji">🌍</span>
+      <span data-i18n="discover_new_worlds">Discover new worlds</span>
+    </div>`;
+
+  list.innerHTML = rows + discoverCta;
+}
+
+function openWorld(id) {
+  currentWorld = id;
+  const w = worlds[id];
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('worldView').style.display = 'block';
+  document.getElementById('worldIcon').textContent = w.icon;
+  document.getElementById('worldTitle').textContent = w.title;
+  document.getElementById('worldMembers').textContent = w.members;
+  document.getElementById('worldOnline').textContent = w.online;
+  document.getElementById('worldPosts').textContent = w.posts;
+  document.getElementById('s-members').textContent = w.members;
+  document.getElementById('joinWorldName').textContent = w.title;
+
+  document.querySelectorAll('#worldsList .world-item').forEach(el => el.classList.remove('active'));
+  const nav = document.getElementById('nav-' + id);
+  if (nav) nav.classList.add('active');
+
+  document.querySelectorAll('.left-nav .world-item').forEach(el => el.classList.remove('active'));
+  const navHome = document.getElementById('navHome');
+  if (navHome) navHome.classList.add('active');
+
+  switchTab('home');
+  document.getElementById('searchOverlay').classList.remove('open');
+  document.getElementById('contentArea').scrollTop = 0;
+}
+
+function showLanding() {
+  document.getElementById('landing').style.display = 'flex';
+  document.getElementById('worldView').style.display = 'none';
+  document.querySelectorAll('#worldsList .world-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.left-nav .world-item').forEach(el => el.classList.remove('active'));
+  const navHome = document.getElementById('navHome');
+  if (navHome) navHome.classList.add('active');
+  currentWorld = null;
+}
+
+function selectWorld(id) {
+  openWorld(id);
+}
+
+// Left-nav: Home takes the user back to the landing / current world feed
+function goHome() {
+  document.querySelectorAll('.left-nav .world-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('navHome').classList.add('active');
+  if (currentWorld) {
+    switchTab('home');
+    document.getElementById('contentArea').scrollTop = 0;
+  } else {
+    showLanding();
+  }
+}
+
+// Left-nav: Reels jumps into the Reels tab of the currently open world,
+// or opens the first world if the user is still on the landing page
+function goReels() {
+  document.querySelectorAll('.left-nav .world-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('navReels').classList.add('active');
+  if (!currentWorld) {
+    openWorld(WORLD_ORDER[0]);
+  }
+  switchTab('reels');
+}
+
+// Render immediately: this script tag is placed after #worldsList in the DOM,
+// so the element already exists by the time this file executes — no need to
+// wait for DOMContentLoaded (and waiting was the bug: on some load orders the
+// event had already fired by the time the listener was attached, leaving the
+// right-hand Worlds column empty). Keep the listener too as a harmless safety net.
+renderWorldsSidebar();
+document.addEventListener('DOMContentLoaded', renderWorldsSidebar);
+window.addEventListener('load', renderWorldsSidebar);
+
+</script>
+<script>
+// ===================== APP.JS =====================
+// Tabs, modals, search overlay, language switcher
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(b => { if(b.getAttribute('onclick').includes("'" + name + "'")) b.classList.add('active'); });
+
+  // keep the left-nav icon rail in sync with the active tab
+  const navHome = document.getElementById('navHome');
+  const navReels = document.getElementById('navReels');
+  if (navHome && navReels) {
+    navHome.classList.toggle('active', name !== 'reels');
+    navReels.classList.toggle('active', name === 'reels');
+  }
+}
+
+function showModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id, e) {
+  if (!e || e.target === document.getElementById(id)) document.getElementById(id).classList.remove('open');
+}
+
+function openSearch() {
+  document.getElementById('searchOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('liveSearch').focus(), 50);
+}
+function closeSearchOverlay(e) {
+  if (e.target === document.getElementById('searchOverlay')) document.getElementById('searchOverlay').classList.remove('open');
+}
+function doSearch(val) {
+  // simple visual update — extend as needed
+}
+
+function toggleLang() {
+  document.getElementById('langDropdown').classList.toggle('open');
+}
+function setLang(code, name) {
+  applyTranslations(code);
+  document.getElementById('langDropdown').classList.remove('open');
+}
+
+// ---- Fixed-position popovers (More menu / Notifications) ----
+// Placed with position:fixed based on the trigger row's live coordinates,
+// so opening them never reflows the page and they always sit right next
+// to (or above, on mobile) the row that opened them.
+function positionPopover(popover, anchor) {
+  const r = anchor.getBoundingClientRect();
+  const isBottomBar = window.innerWidth <= 640; // left-nav becomes a bottom tab bar on phones
+  popover.style.visibility = 'hidden';
+  popover.style.display = 'block';
+  const pw = popover.offsetWidth;
+  const ph = popover.offsetHeight;
+
+  if (isBottomBar) {
+    let left = r.left + r.width / 2 - pw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+    popover.style.left = left + 'px';
+    popover.style.top = 'auto';
+    popover.style.bottom = (window.innerHeight - r.top + 10) + 'px';
+  } else {
+    let top = r.top;
+    top = Math.min(top, window.innerHeight - ph - 12);
+    popover.style.top = Math.max(12, top) + 'px';
+    popover.style.bottom = 'auto';
+    popover.style.left = (r.right + 10) + 'px';
+  }
+  popover.style.display = '';
+  popover.style.visibility = '';
+}
+
+function closeAllPopovers(except) {
+  ['moreMenu', 'notifDropdown', 'langDropdown'].forEach(id => {
+    if (id === except) return;
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('open');
+  });
+}
+
+// ---- LEFT NAV: "More" popover ----
+function toggleMoreMenu(e) {
+  const menu = document.getElementById('moreMenu');
+  const anchor = document.getElementById('navMore');
+  const willOpen = !menu.classList.contains('open');
+  closeAllPopovers();
+  if (willOpen) {
+    positionPopover(menu, anchor);
+    menu.classList.add('open');
+  }
+  if (e) e.stopPropagation();
+}
+
+// ---- LEFT NAV: Notifications popover ----
+function toggleNotifPanel(e) {
+  const panel = document.getElementById('notifDropdown');
+  const anchor = document.getElementById('navNotif');
+  const willOpen = !panel.classList.contains('open');
+  closeAllPopovers();
+  if (willOpen) {
+    positionPopover(panel, anchor);
+    panel.classList.add('open');
+    clearNotifBadge();
+  }
+  if (e) e.stopPropagation();
+}
+
+// ---- LEFT NAV: badge helpers ----
+function setNavBadge(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = count > 0 ? (count > 99 ? '99+' : String(count)) : '';
+  el.setAttribute('data-count', String(count));
+}
+function clearNotifBadge() { setNavBadge('navNotifBadge', 0); }
+function clearMessagesBadge() { setNavBadge('navMsgBadge', 0); }
+
+// Close lang / more / notif popovers on outside click
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('langDropdown');
+  const langBtn = document.getElementById('langBtn');
+  if (dropdown && langBtn && !langBtn.contains(e.target) && !dropdown.contains(e.target)) {
+    dropdown.classList.remove('open');
+  }
+
+  const moreMenu = document.getElementById('moreMenu');
+  const moreBtn = document.getElementById('navMore');
+  if (moreMenu && moreBtn && !moreBtn.contains(e.target) && !moreMenu.contains(e.target)) {
+    moreMenu.classList.remove('open');
+  }
+
+  const notifPanel = document.getElementById('notifDropdown');
+  const notifBtn = document.getElementById('navNotif');
+  if (notifPanel && notifBtn && !notifBtn.contains(e.target) && !notifPanel.contains(e.target)) {
+    notifPanel.classList.remove('open');
+  }
+});
+
+// Popovers are anchored to a live element position — if the nav list (or the
+// page) scrolls or resizes while one is open, close it rather than let it
+// drift away from its trigger.
+const leftNavScroll = document.querySelector('.left-nav-scroll');
+if (leftNavScroll) leftNavScroll.addEventListener('scroll', () => closeAllPopovers(), { passive: true });
+window.addEventListener('resize', () => closeAllPopovers());
+
+// Global ESC key handler
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('searchOverlay').classList.remove('open');
+    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+    closeAllPopovers();
+  }
+});
+
+</script>
+<script>/* chat.js not provided in this export */</script>
+<script>/* ai.js not provided in this export */</script>
+
+<script>
+/* ===================== FEED: POSTS / LIKES / COMMENTS / SHARE ===================== */
+
+let currentUserId = null;
+let myFollowing = new Set(); // معرّفات المستخدمين الذين نتابعهم حاليًا
+const loadedComments = new Set(); // postIds whose comments have already been fetched
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
+}
+
+/* -------- HELPERS: TIME / AVATAR -------- */
+
+function timeAgo(dateStr) {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return "الآن";
+  if (diff < 3600) return `${Math.floor(diff / 60)} د`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} س`;
+  if (diff < 2592000) return `${Math.floor(diff / 86400)} يوم`;
+  return new Date(dateStr).toLocaleDateString("ar-DZ");
+}
+
+const AVATAR_GRADIENTS = [
+  "linear-gradient(135deg,#6c63ff,#a855f7)",
+  "linear-gradient(135deg,#22c55e,#0ea5e9)",
+  "linear-gradient(135deg,#f59e0b,#ef4444)",
+  "linear-gradient(135deg,#ec4899,#a855f7)",
+  "linear-gradient(135deg,#0ea5e9,#6366f1)"
+];
+
+function gradientFor(id) {
+  let hash = 0;
+  for (const ch of String(id || "u")) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_GRADIENTS[hash % AVATAR_GRADIENTS.length];
+}
+
+function goToProfile(userId) {
+  if (!userId) return;
+  window.location.href = (userId === currentUserId) ? "profile.html" : `profile.html?user=${userId}`;
+}
+
+/* -------- FOLLOW / UNFOLLOW -------- */
+
+function renderFollowBtn(authorId) {
+  if (!authorId || authorId === currentUserId) return ""; // لا زر متابعة على منشوراتنا الخاصة
+
+  if (myFollowing.has(authorId)) {
+    return `
+      <button class="btn btn-following follow-btn-sm" data-user="${authorId}" onclick="toggleFollow('${authorId}')" style="margin-left:auto" title="متابَع">
+        <i class="ti ti-user-check ficon-on" aria-hidden="true"></i><i class="ti ti-user-x ficon-off" aria-hidden="true"></i>
+        <span class="flabel-on">متابَع</span><span class="flabel-off">إلغاء المتابعة</span>
+      </button>`;
+  }
+
+  return `
+    <button class="btn btn-follow follow-btn-sm" data-user="${authorId}" onclick="toggleFollow('${authorId}')" style="margin-left:auto" title="متابعة">
+      <i class="ti ti-user-plus" aria-hidden="true"></i> متابعة
+    </button>`;
+}
+
+async function toggleFollow(targetId) {
+  const { data: { session } } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للمتابعة");
+    return;
+  }
+
+  const myId = session.user.id;
+  if (myId === targetId) return;
+
+  const buttons = document.querySelectorAll(`button[data-user="${targetId}"]`);
+  buttons.forEach(b => b.disabled = true);
+
+  const isFollowing = myFollowing.has(targetId);
+
+  if (isFollowing) {
+    const { error } = await window.sb
+      .from("follows")
+      .delete()
+      .eq("follower_id", myId)
+      .eq("following_id", targetId);
+
+    if (error) {
+      console.error("Error unfollowing:", error.message);
+      buttons.forEach(b => b.disabled = false);
+      return;
+    }
+    myFollowing.delete(targetId);
+
+  } else {
+    const { error } = await window.sb
+      .from("follows")
+      .insert({ follower_id: myId, following_id: targetId });
+
+    if (error) {
+      console.error("Error following:", error.message);
+      buttons.forEach(b => b.disabled = false);
+      return;
+    }
+    myFollowing.add(targetId);
+  }
+
+  document.querySelectorAll(`button[data-user="${targetId}"]`).forEach(btn => {
+    btn.outerHTML = renderFollowBtn(targetId);
+  });
+}
+
+async function checkUser() {
+  if (!window.sb) {
+    console.error("Supabase not loaded");
+    return;
+  }
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
+
+  currentUserId = session.user.id;
+}
+
+async function loadPosts() {
+
+  const container = document.getElementById("feed-posts");
+
+  if (!container) return;
+
+  const { data: { session } } = await window.sb.auth.getSession();
+  const userId = session?.user?.id || null;
+  currentUserId = userId;
+
+  const { data: posts, error } = await window.sb
+    .from("posts")
+    .select("*, likes(count), comments(count)")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error loading posts:", error);
+    return;
+  }
+
+  // نجلب إعجابات المستخدم الحالي لمعرفة أي المنشورات أعجب بها مسبقاً
+  let likedSet = new Set();
+  if (userId) {
+    const { data: myLikes, error: likesError } = await window.sb
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", userId);
+
+    if (!likesError && myLikes) {
+      likedSet = new Set(myLikes.map(l => l.post_id));
+    }
+  }
+
+  // من نتابعهم حاليًا (لعرض حالة زر المتابعة الصحيحة)
+  myFollowing = new Set();
+  if (userId) {
+    const { data: myFollows, error: followsError } = await window.sb
+      .from("follows")
+      .select("following_id")
+      .eq("follower_id", userId);
+
+    if (!followsError && myFollows) {
+      myFollowing = new Set(myFollows.map(f => f.following_id));
+    }
+  }
+
+  // بيانات أصحاب المنشورات (الاسم/المعرف) لعرضهم في رأس كل منشور
+  const authorIds = [...new Set(posts.map(p => p.user_id).filter(Boolean))];
+  const profilesMap = {};
+  if (authorIds.length) {
+    const { data: authorProfiles, error: profilesError } = await window.sb
+      .from("profiles")
+      .select("id, username, full_name")
+      .in("id", authorIds);
+
+    if (!profilesError && authorProfiles) {
+      authorProfiles.forEach(p => { profilesMap[p.id] = p; });
+    }
+  }
+
+  container.innerHTML = "";
+
+  posts.forEach(post => {
+    const likeCount = post.likes?.[0]?.count || 0;
+    const commentCount = post.comments?.[0]?.count || 0;
+    const isLiked = likedSet.has(post.id);
+
+    const authorId = post.user_id;
+    const author = profilesMap[authorId];
+    const authorName = author?.full_name || author?.username || "مستخدم";
+    const authorInitials = (author?.username || authorName || "U").substring(0, 2).toUpperCase();
+
+    container.innerHTML += `
+      <article class="post-card" id="post-${post.id}">
+
+        <div class="post-header">
+          <div class="post-avatar post-avatar-link" style="background:${gradientFor(authorId)};color:#fff" onclick="goToProfile('${authorId}')" title="${escapeHtml(authorName)}">${escapeHtml(authorInitials)}</div>
+          <div class="post-meta">
+            <div class="post-author post-author-link" onclick="goToProfile('${authorId}')">${escapeHtml(authorName)}</div>
+            <div class="post-time">${timeAgo(post.created_at)}</div>
+          </div>
+          ${renderFollowBtn(authorId)}
+        </div>
+
+        <div class="post-body">
+          ${escapeHtml(post.content || "")}
+        </div>
+
+        <div class="post-actions">
+          <button id="like-btn-${post.id}" class="like-btn${isLiked ? " liked" : ""}" onclick="toggleLike('${post.id}')" aria-pressed="${isLiked}" title="إعجاب">
+            <i class="ti ${isLiked ? "ti-heart-filled" : "ti-heart"}" aria-hidden="true"></i>
+            <span class="likes-count" id="like-count-${post.id}">${likeCount}</span>
+          </button>
+          <button class="comment-btn" onclick="toggleComments('${post.id}')" title="تعليق">
+            <i class="ti ti-message-circle-2" aria-hidden="true"></i>
+            <span class="comments-count" id="comment-count-${post.id}">${commentCount}</span>
+          </button>
+          <button class="share-btn" onclick="sharePost('${post.id}')" title="مشاركة">
+            <i class="ti ti-share" aria-hidden="true"></i> مشاركة
+          </button>
+        </div>
+
+        <div class="post-footer">
+          <small>
+            ${new Date(post.created_at).toLocaleString("ar-DZ")}
+          </small>
+        </div>
+
+        <div class="comments-box" id="comments-${post.id}" style="display:none">
+          <div class="comments-list" id="comments-list-${post.id}"></div>
+          <div class="comment-input">
+            <input
+              type="text"
+              id="comment-input-${post.id}"
+              placeholder="اكتب تعليقاً..."
+              onkeydown="if(event.key==='Enter'){event.preventDefault();submitComment('${post.id}');}"
+            >
+            <button onclick="submitComment('${post.id}')" title="إرسال">
+              <i class="ti ti-send" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+      </article>
+    `;
+
+  });
+}
+
+/* -------- LIKES -------- */
+
+async function toggleLike(postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+  }
+
+  const userId = session.user.id;
+  const btn = document.getElementById(`like-btn-${postId}`);
+  const countEl = document.getElementById(`like-count-${postId}`);
+  const icon = btn.querySelector("i");
+  const isLiked = btn.classList.contains("liked");
+
+  if (isLiked) {
+    // إلغاء الإعجاب
+    const { error } = await window.sb
+      .from("likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    btn.classList.remove("liked");
+    btn.setAttribute("aria-pressed", "false");
+    icon.classList.remove("ti-heart-filled");
+    icon.classList.add("ti-heart");
+    countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
+
+  } else {
+    // تسجيل إعجاب
+    const { error } = await window.sb
+      .from("likes")
+      .insert({ post_id: postId, user_id: userId });
+
+    if (error) {
+      console.error(error);
+      alert("ربما أعجبت بهذا المنشور مسبقاً");
+      return;
+    }
+
+    btn.classList.add("liked");
+    btn.setAttribute("aria-pressed", "true");
+    icon.classList.remove("ti-heart");
+    icon.classList.add("ti-heart-filled");
+    countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+  }
+}
+
+/* -------- COMMENTS -------- */
+
+let commentOriginalText = {}; // commentId -> original content (for cancel-edit)
+
+function timeAgo(dateStr) {
+  const date = new Date(dateStr);
+  const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+
+  if (diffSec < 30) return "الآن";
+  if (diffSec < 60) return `منذ ${diffSec} ثانية`;
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin === 1 ? "منذ دقيقة" : diffMin === 2 ? "منذ دقيقتين" : `منذ ${diffMin} دقائق`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return diffHour === 1 ? "منذ ساعة" : diffHour === 2 ? "منذ ساعتين" : `منذ ${diffHour} ساعات`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return diffDay === 1 ? "منذ يوم" : diffDay === 2 ? "منذ يومين" : `منذ ${diffDay} أيام`;
+
+  return date.toLocaleDateString("ar-DZ");
+}
+
+async function toggleComments(postId) {
+  const box = document.getElementById(`comments-${postId}`);
+  const isOpen = box.style.display !== "none";
+
+  box.style.display = isOpen ? "none" : "block";
+
+  if (!isOpen && !loadedComments.has(postId)) {
+    await loadComments(postId);
+    loadedComments.add(postId);
+  }
+}
+
+// يبني شجرة تعليقات/ردود من قائمة مسطّحة اعتماداً على parent_id
+function buildCommentTree(comments) {
+  const map = {};
+  const roots = [];
+
+  comments.forEach(c => { c._children = []; map[c.id] = c; });
+  comments.forEach(c => {
+    if (c.parent_id && map[c.parent_id]) {
+      map[c.parent_id]._children.push(c);
+    } else {
+      roots.push(c);
+    }
+  });
+
+  return roots;
+}
+
+function renderComment(c, postId, depth) {
+  const authorName = c.profiles?.full_name || c.profiles?.username || "مستخدم";
+  const initials = (c.profiles?.username || authorName || "U").substring(0, 2).toUpperCase();
+  const likeCount = c.comment_likes?.[0]?.count || 0;
+  const isOwner = currentUserId && c.user_id === currentUserId;
+  const indent = depth > 0 ? ` style="margin-inline-start:${Math.min(depth, 4) * 26}px"` : "";
+
+  const childrenHtml = (c._children || [])
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .map(child => renderComment(child, postId, depth + 1))
+    .join("");
+
+  return `
+    <div class="comment-item"${indent} id="comment-${c.id}">
+      <div class="comment-avatar">${escapeHtml(initials)}</div>
+      <div class="comment-content">
+        <div class="comment-header">
+          <span class="comment-author"><i class="ti ti-user-circle" aria-hidden="true"></i> ${escapeHtml(authorName)}</span>
+          <span class="comment-time">${timeAgo(c.created_at)}</span>
+        </div>
+
+        <div class="comment-text" id="comment-text-${c.id}">${escapeHtml(c.content)}</div>
+
+        <div class="comment-actions">
+          <button class="reply-like-btn${c._liked ? " liked" : ""}" id="reply-like-${c.id}" onclick="toggleCommentLike('${c.id}','${postId}')">
+            <i class="ti ${c._liked ? "ti-heart-filled" : "ti-heart"}" aria-hidden="true"></i>
+            إعجاب <span id="reply-like-count-${c.id}">${likeCount}</span>
+          </button>
+          <button class="reply-btn" onclick="showReplyInput('${c.id}')">
+            <i class="ti ti-corner-up-left" aria-hidden="true"></i> رد
+          </button>
+          ${isOwner ? `
+          <button class="edit-comment-btn" onclick="startEditComment('${c.id}')">
+            <i class="ti ti-pencil" aria-hidden="true"></i> تعديل
+          </button>
+          <button class="delete-comment-btn" onclick="deleteComment('${c.id}','${postId}')">
+            <i class="ti ti-trash" aria-hidden="true"></i> حذف
+          </button>` : ``}
+        </div>
+
+        <div class="reply-input-box" id="reply-input-${c.id}" style="display:none">
+          <input type="text" id="reply-text-${c.id}" placeholder="اكتب رداً..."
+            onkeydown="if(event.key==='Enter'){event.preventDefault();submitReply('${c.id}','${postId}');}">
+          <button onclick="submitReply('${c.id}','${postId}')" title="إرسال الرد">
+            <i class="ti ti-send" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="comment-replies">
+          ${childrenHtml}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById(`comments-list-${postId}`);
+  list.innerHTML = `<div class="comments-loading">جارِ تحميل التعليقات...</div>`;
+
+  const { data: { session } } = await window.sb.auth.getSession();
+  const userId = session?.user?.id || null;
+
+  const { data, error } = await window.sb
+    .from("comments")
+    .select("*, profiles(username, full_name), comment_likes(count)")
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("Error loading comments:", error.message);
+    list.innerHTML = `<div class="comments-empty">تعذر تحميل التعليقات</div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = `<div class="comments-empty">لا توجد تعليقات بعد، كن أول من يعلّق</div>`;
+    return;
+  }
+
+  let likedSet = new Set();
+  if (userId) {
+    const { data: myLikes } = await window.sb
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("user_id", userId);
+
+    if (myLikes) likedSet = new Set(myLikes.map(l => l.comment_id));
+  }
+
+  data.forEach(c => {
+    c._liked = likedSet.has(c.id);
+    commentOriginalText[c.id] = c.content;
+  });
+
+  const tree = buildCommentTree(data);
+  list.innerHTML = tree.map(c => renderComment(c, postId, 0)).join("");
+}
+
+async function refreshCommentCount(postId) {
+  const { count, error } = await window.sb
+    .from("comments")
+    .select("id", { count: "exact", head: true })
+    .eq("post_id", postId);
+
+  if (!error && count !== null) {
+    const el = document.getElementById(`comment-count-${postId}`);
+    if (el) el.textContent = count;
+  }
+}
+
+async function submitComment(postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للتعليق");
+    return;
+  }
+
+  const input = document.getElementById(`comment-input-${postId}`);
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .insert({
+      post_id: postId,
+      user_id: session.user.id,
+      content: content,
+      parent_id: null
+    });
+
+  if (error) {
+    console.error("Error adding comment:", error.message);
+    alert("حدث خطأ أثناء إضافة التعليق");
+    return;
+  }
+
+  input.value = "";
+  loadedComments.delete(postId);
+  await loadComments(postId);
+  loadedComments.add(postId);
+
+  await refreshCommentCount(postId);
+}
+
+/* -------- REPLIES -------- */
+
+function showReplyInput(commentId) {
+  const box = document.getElementById(`reply-input-${commentId}`);
+  const isOpen = box.style.display !== "none";
+  box.style.display = isOpen ? "none" : "flex";
+
+  if (!isOpen) {
+    document.getElementById(`reply-text-${commentId}`).focus();
+  }
+}
+
+async function submitReply(parentId, postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً للرد");
+    return;
+  }
+
+  const input = document.getElementById(`reply-text-${parentId}`);
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .insert({
+      post_id: postId,
+      user_id: session.user.id,
+      content: content,
+      parent_id: parentId
+    });
+
+  if (error) {
+    console.error("Error adding reply:", error.message);
+    alert("حدث خطأ أثناء إضافة الرد");
+    return;
+  }
+
+  input.value = "";
+  document.getElementById(`reply-input-${parentId}`).style.display = "none";
+
+  loadedComments.delete(postId);
+  await loadComments(postId);
+  loadedComments.add(postId);
+
+  await refreshCommentCount(postId);
+}
+
+/* -------- EDIT / DELETE COMMENT (owner only) -------- */
+
+function startEditComment(commentId) {
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  const original = commentOriginalText[commentId] ?? textEl.textContent;
+
+  textEl.innerHTML = `
+    <div class="comment-edit-box">
+      <input type="text" id="edit-input-${commentId}" value="${escapeHtml(original)}"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();saveEditComment('${commentId}');} if(event.key==='Escape'){cancelEditComment('${commentId}');}">
+      <div class="comment-edit-actions">
+        <button class="save-edit-btn" onclick="saveEditComment('${commentId}')" title="حفظ">
+          <i class="ti ti-check" aria-hidden="true"></i>
+        </button>
+        <button class="cancel-edit-btn" onclick="cancelEditComment('${commentId}')" title="إلغاء">
+          <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById(`edit-input-${commentId}`).focus();
+}
+
+function cancelEditComment(commentId) {
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  textEl.textContent = commentOriginalText[commentId] ?? "";
+}
+
+async function saveEditComment(commentId) {
+  const input = document.getElementById(`edit-input-${commentId}`);
+  const newContent = input.value.trim();
+
+  if (!newContent) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .update({ content: newContent })
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("Error editing comment:", error.message);
+    alert("حدث خطأ أثناء تعديل التعليق");
+    return;
+  }
+
+  commentOriginalText[commentId] = newContent;
+  const textEl = document.getElementById(`comment-text-${commentId}`);
+  textEl.textContent = newContent;
+}
+
+async function deleteComment(commentId, postId) {
+  if (!confirm("هل أنت متأكد من حذف هذا التعليق؟")) return;
+
+  const { error } = await window.sb
+    .from("comments")
+    .delete()
+    .eq("id", commentId);
+
+  if (error) {
+    console.error("Error deleting comment:", error.message);
+    alert("حدث خطأ أثناء حذف التعليق");
+    return;
+  }
+
+  const el = document.getElementById(`comment-${commentId}`);
+  if (el) el.remove();
+
+  await refreshCommentCount(postId);
+}
+
+/* -------- COMMENT LIKES -------- */
+
+async function toggleCommentLike(commentId, postId) {
+
+  const {
+    data: { session }
+  } = await window.sb.auth.getSession();
+
+  if (!session) {
+    alert("يجب تسجيل الدخول أولاً");
+    return;
+  }
+
+  const userId = session.user.id;
+  const btn = document.getElementById(`reply-like-${commentId}`);
+  const countEl = document.getElementById(`reply-like-count-${commentId}`);
+  const icon = btn.querySelector("i");
+  const isLiked = btn.classList.contains("liked");
+
+  if (isLiked) {
+    const { error } = await window.sb
+      .from("comment_likes")
+      .delete()
+      .eq("comment_id", commentId)
+      .eq("user_id", userId);
+
+    if (error) { console.error(error); return; }
+
+    btn.classList.remove("liked");
+    icon.classList.remove("ti-heart-filled");
+    icon.classList.add("ti-heart");
+    countEl.textContent = Math.max(0, parseInt(countEl.textContent, 10) - 1);
+
+  } else {
+    const { error } = await window.sb
+      .from("comment_likes")
+      .insert({ comment_id: commentId, user_id: userId });
+
+    if (error) { console.error(error); return; }
+
+    btn.classList.add("liked");
+    icon.classList.remove("ti-heart");
+    icon.classList.add("ti-heart-filled");
+    countEl.textContent = parseInt(countEl.textContent, 10) + 1;
+  }
+}
+
+/* -------- SHARE -------- */
+
+async function sharePost(postId) {
+  const url = `${window.location.origin}${window.location.pathname}?post=${postId}`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: "WorldHub",
+        text: "شاهد هذا المنشور على WorldHub",
+        url
+      });
+    } catch (e) {
+      // المستخدم ألغى المشاركة، لا داعي لفعل شيء
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("تم نسخ رابط المنشور");
+  } catch (e) {
+    prompt("انسخ رابط المنشور:", url);
+  }
+}
+
+/* -------- INIT -------- */
+
+window.addEventListener("load", async () => {
+  currentUserId = "demo"; myFollowing = new Set();
+  console.log("[standalone demo] auth flow skipped — this file is only for visually verifying the sidebar fix");
+});
+</script>
+</body>
+</html>
